@@ -453,7 +453,8 @@ function beginRecording() {
   cam.aborted = false;
   // Record the composited canvas (camera + sticker) plus the mic, so the sticker is burned in.
   const mixed = new MediaStream([...$("#r-canvas").captureStream(30).getVideoTracks(), ...stream.getAudioTracks()]);
-  recorder = new MediaRecorder(mixed, { mimeType: pickMime() });
+  // Capped bitrate keeps a 20 s clip near 3 MB, under the ~4.5 MB request limit of the Vercel proxy.
+  recorder = new MediaRecorder(mixed, { mimeType: pickMime(), videoBitsPerSecond: 1_100_000, audioBitsPerSecond: 96_000 });
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   recorder.onstop = finishRecording;
   if (SpeechRec) {
