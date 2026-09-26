@@ -154,3 +154,16 @@ test("app motion loads Motion before app.js and respects prefers-reduced-motion"
   const css = await (await fetch(`${base}/style.css`)).text();
   expect(css.match(/@media \(prefers-reduced-motion: reduce\)/g)?.length).toBeGreaterThanOrEqual(2);
 });
+
+test("record screen burns the product sticker into the recording and frames", async () => {
+  const html = await (await fetch(`${base}/`)).text();
+  for (const id of ["r-sticker", "r-sticker-img", "r-sticker-toggle", "r-canvas"]) expect(html).toContain(`id="${id}"`);
+  const js = await (await fetch(`${base}/app.js`)).text();
+  expect(js).toContain('$("#r-canvas").captureStream(30)'); // recorder gets the composited canvas, not the raw camera
+  expect(js).toMatch(/function drawSticker[\s\S]*drawImage\(im,/);
+  expect(js).toMatch(/function grabFrame\(\) \{\s*const v = \$\("#r-canvas"\)/); // Grok's frames include the sticker
+});
+
+test("customer app uses real product photos, not the SVG placeholders", async () => {
+  for (const path of ["/", "/app.js"]) expect(await (await fetch(base + path)).text()).not.toMatch(/\/img\/[\w-]+\.svg/);
+});

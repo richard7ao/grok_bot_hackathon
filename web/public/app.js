@@ -316,7 +316,9 @@ function renderDrop() {
 const MIN_MS = 10000, MAX_MS = 20000, FRAME_EVERY_MS = 3000;
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 let stream, recorder, chunks, frames, transcript, speech, startedAt, tick, frameTimer;
-const cam = { facing: "user", countdown: true, countTimer: null, aborted: false };
+const cam = { facing: "user", countdown: true, countTimer: null, aborted: false, raf: 0 };
+// Product sticker, in fractions of the frame (centre x/y, width). Persists across retakes.
+const stk = { on: true, failed: false, hinted: false, x: 0.6, y: 0.42, w: 0.34 };
 const fmtClock = (ms) => {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -369,11 +371,14 @@ async function startCamera() {
   $("#r-blocked").hidden = true;
   $("#r-live").srcObject = stream;
   $("#s-record").classList.toggle("selfie", cam.facing === "user");
+  loadSticker();
+  startCompositor();
   $("#r-go").disabled = false;
   $("#r-note").textContent = SpeechRec ? "Speak clearly: Grok reads what you say." : "Speech capture needs Chrome. Grok will only see frames.";
 }
 
 function stopCamera() {
+  cancelAnimationFrame(cam.raf);
   stream?.getTracks().forEach((t) => t.stop());
   stream = null;
 }
@@ -403,7 +408,9 @@ function beginRecording() {
   frames = [];
   transcript = "";
   cam.aborted = false;
-  recorder = new MediaRecorder(stream, { mimeType: pickMime() });
+  // Record the composited canvas (camera + sticker) plus the mic, so the sticker is burned in.
+  const mixed = new MediaStream([...$("#r-canvas").captureStream(30).getVideoTracks(), ...stream.getAudioTracks()]);
+  recorder = new MediaRecorder(mixed, { mimeType: pickMime() });
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   recorder.onstop = finishRecording;
   if (SpeechRec) {
@@ -480,16 +487,134 @@ $("#r-timer").onclick = () => {
 $("#r-hints").onclick = () => press($("#r-hints"), !($("#r-card").hidden = !$("#r-card").hidden));
 $("#r-guide").onclick = () => press($("#r-guide"), !($("#r-guides").hidden = !$("#r-guides").hidden));
 
+$("#r-sticker-toggle").onclick = () => {
+  stk.on = !stk.on;
+  press($("#r-sticker-toggle"), stk.on);
+  syncSticker();
+};
+
+// Compositor: camera (object-fit: cover, mirrored for selfie) + sticker onto a canvas at the frame's aspect,
+// 1280 px tall, so the on-screen canvas and the recording are the same picture.
+function startCompositor() {
+  const box = $("#s-record"), c = $("#r-canvas");
+  c.height = 1280;
+  c.width = box.clientHeight ? Math.min(720, Math.round((640 * box.clientWidth) / box.clientHeight) * 2) : 720;
+  cancelAnimationFrame(cam.raf);
+  const draw = () => {
+    const v = $("#r-live"), g = c.getContext("2d");
+    if (v.videoWidth && box.clientWidth) {
+      const s = Math.max(c.width / v.videoWidth, c.height / v.videoHeight), w = v.videoWidth * s, h = v.videoHeight * s;
+      g.save();
+      if (cam.facing === "user") g.setTransform(-1, 0, 0, 1, c.width, 0);
+      g.drawImage(v, (c.width - w) / 2, (c.height - h) / 2, w, h);
+      g.restore();
+      drawSticker(g, c.width / box.clientWidth);
+    }
+    cam.raf = requestAnimationFrame(draw);
+  };
+  draw();
+}
+
+// Mirrors the DOM sticker: 4px white border, 16px radius, soft shadow, -4deg tilt. k = canvas px per CSS px.
+function drawSticker(g, k) {
+  const im = $("#r-sticker-img"), c = g.canvas;
+  if (!stk.on || stk.failed || !im.naturalWidth) return;
+  const b = 4 * k, r = 16 * k, w = stk.w * c.width, iw = w - 2 * b, ih = (iw * im.naturalHeight) / im.naturalWidth, h = ih + 2 * b;
+  g.save();
+  g.translate(stk.x * c.width, stk.y * c.height);
+  g.rotate((-4 * Math.PI) / 180);
+  Object.assign(g, { shadowColor: "rgba(0,0,0,.35)", shadowBlur: 24 * k, shadowOffsetY: 8 * k, fillStyle: "#fff" });
+  g.beginPath();
+  g.roundRect(-w / 2, -h / 2, w, h, r);
+  g.fill();
+  g.shadowColor = "transparent";
+  g.beginPath();
+  g.roundRect(-iw / 2, -ih / 2, iw, ih, r - b);
+  g.clip();
+  g.drawImage(im, -iw / 2, -ih / 2, iw, ih);
+  g.restore();
+}
+
+function loadSticker() {
+  const im = $("#r-sticker-img"), src = st.drop?.image_url;
+  if (!src) return ((stk.failed = true), syncSticker());
+  if (im.getAttribute("src") === src) return syncSticker();
+  stk.failed = false;
+  im.src = src;
+}
+$("#r-sticker-img").onload = () => {
+  placeSticker();
+  syncSticker();
+  if (stk.hinted) return;
+  stk.hinted = true;
+  $("#r-sticker-hint").hidden = false;
+  setTimeout(() => ($("#r-sticker-hint").hidden = true), 4000);
+};
+$("#r-sticker-img").onerror = () => ((stk.failed = true), syncSticker()); // record without it
+
+function syncSticker() {
+  $("#r-sticker").hidden = !stk.on || stk.failed;
+  $("#r-sticker-toggle").hidden = stk.failed;
+}
+
+// Keep the sticker inside the frame, then position the DOM copy (the canvas reads stk directly).
+function placeSticker() {
+  const box = $("#s-record"), im = $("#r-sticker-img");
+  const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+  stk.w = clamp(stk.w, 0.15, 0.8);
+  const hh = (stk.w * box.clientWidth * (im.naturalHeight / im.naturalWidth || 1)) / box.clientHeight / 2;
+  stk.x = clamp(stk.x, stk.w / 2, 1 - stk.w / 2);
+  stk.y = clamp(stk.y, hh, 1 - hh);
+  Object.assign($("#r-sticker").style, { left: `${stk.x * 100}%`, top: `${stk.y * 100}%`, width: `${stk.w * 100}%` });
+}
+
+// Drag with one pointer, pinch with two, wheel to resize.
+const touches = new Map();
+let pinchDist = 0;
+const sticker = $("#r-sticker");
+sticker.onpointerdown = (e) => {
+  sticker.setPointerCapture(e.pointerId);
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  pinchDist = 0;
+  $("#r-sticker-hint").hidden = true;
+};
+sticker.onpointermove = (e) => {
+  const prev = touches.get(e.pointerId);
+  if (!prev) return;
+  const box = $("#s-record").getBoundingClientRect();
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 1) {
+    stk.x += (e.clientX - prev.x) / box.width;
+    stk.y += (e.clientY - prev.y) / box.height;
+  } else {
+    const [a, b] = [...touches.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinchDist) stk.w *= d / pinchDist;
+    pinchDist = d;
+  }
+  placeSticker();
+};
+sticker.onpointerup = sticker.onpointercancel = (e) => {
+  touches.delete(e.pointerId);
+  pinchDist = 0;
+};
+sticker.onwheel = (e) => {
+  e.preventDefault();
+  stk.w *= Math.exp(-e.deltaY / 500);
+  placeSticker();
+};
+
+// Frames for Grok come from the composited canvas, so the reviewer sees the sticker too.
 function grabFrame() {
-  const v = $("#r-live");
-  if (!v.videoWidth) return;
-  const scale = 512 / Math.max(v.videoWidth, v.videoHeight);
-  const c = Object.assign(document.createElement("canvas"), { width: Math.round(v.videoWidth * scale), height: Math.round(v.videoHeight * scale) });
+  const v = $("#r-canvas");
+  if (!$("#r-live").videoWidth) return;
+  const scale = 512 / Math.max(v.width, v.height);
+  const c = Object.assign(document.createElement("canvas"), { width: Math.round(v.width * scale), height: Math.round(v.height * scale) });
   c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
   c.toBlob((b) => b && frames.push(b), "image/jpeg", 0.8);
 }
 
 async function finishRecording() {
+  recorder.stream.getVideoTracks().forEach((t) => t.stop()); // the canvas capture track
   await new Promise((r) => setTimeout(r, 800)); // let the last speech result arrive
   if (cam.aborted) return;
   const type = recorder.mimeType || "video/webm";

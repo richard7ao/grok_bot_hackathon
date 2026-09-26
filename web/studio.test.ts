@@ -89,3 +89,11 @@ test("studio motion uses WAAPI behind a prefers-reduced-motion guard", async () 
   const css = await (await fetch(`${base}/studio.css`)).text();
   expect(css).toContain("@media (prefers-reduced-motion: reduce)");
 });
+
+test("studio image picker lists the 8 product photos before the illustrations", async () => {
+  const js = await (await fetch(`${base}/studio.js`)).text();
+  for (const f of ["birkin", "arcteryx", "carhartt", "xt6", "stoneisland", "football", "baguette", "flats"]) expect(js).toContain(`"${f}"]`);
+  expect(js).toContain("/img/photos/${f}.jpg");
+  expect(js).toMatch(/\.\.\.PHOTOS\.map\(imageTile\),\s*el\("span", "tiles-lbl", "Illustrations"\),\s*\.\.\.ILLUSTRATIONS\.map\(imageTile\)/);
+  for (const p of ["birkin", "arcteryx", "carhartt", "xt6", "stoneisland", "football", "baguette", "flats"]) expect((await fetch(`${base}/img/photos/${p}.jpg`)).status).toBe(200);
+});
