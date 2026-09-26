@@ -214,3 +214,14 @@ test("clean URLs: / is the landing page, /mobile the shopper app, /desktop Studi
   expect(await page("/mobile/")).toBe(await page("/index.html"));
   expect(await page("/desktop")).toBe(await page("/studio.html"));
 });
+
+test("record screen offers a video upload that submits with its source, direct to Render on Vercel", async () => {
+  const html = await (await fetch(`${base}/mobile`)).text();
+  for (const id of ["r-upload", "r-upload-link", "r-file", "p-heard"]) expect(html).toContain(`id="${id}"`);
+  expect(html).toContain('accept="video/*"');
+  const js = await (await fetch(`${base}/app.js`)).text();
+  expect(js).toContain('const UPLOAD_ORIGIN = "https://dropquest.onrender.com"');
+  expect(js).toContain('f.set("source", c.source)');
+  expect(js).toContain('source: "upload"');
+  expect(js).toContain("Transcribing your video…");
+});

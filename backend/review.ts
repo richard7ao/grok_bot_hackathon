@@ -163,3 +163,33 @@ export async function reviewAttempt(input: ReviewInput): Promise<Review> {
   if (process.env.REVIEW_MODE === "fake") return fakeReview(input.drop, input.transcript);
   return openaiReview(input);
 }
+
+// Fake mode: a zero-filled test video counts as silence; anything else "says" a drop-1 fact word (hardware).
+export const FAKE_TRANSCRIPT = "Fake transcription: a beige trench, and I'd show off the gold hardware and leather.";
+const TRANSCRIBE_URL = process.env.OPENAI_TRANSCRIBE_URL ?? "https://api.openai.com/v1/audio/transcriptions";
+
+// Server-side speech-to-text for uploads and silent browser transcripts. Returns "" on any failure.
+export async function transcribe(video: File): Promise<string> {
+  if (process.env.REVIEW_MODE === "fake") return new Uint8Array(await video.arrayBuffer()).some((b) => b) ? FAKE_TRANSCRIPT : "";
+  const call = async (model: string) => {
+    const form = new FormData();
+    form.set("file", video, video.name || "clip.mp4");
+    form.set("model", model);
+    form.set("response_format", "json");
+    return fetch(TRANSCRIBE_URL, { method: "POST", signal: AbortSignal.timeout(60_000), headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: form });
+  };
+  try {
+    let res = await call(process.env.OPENAI_TRANSCRIBE_MODEL ?? "gpt-4o-mini-transcribe");
+    if (res.status >= 400 && res.status < 500) {
+      const err = await res.text();
+      console.error("transcribe", res.status, err.slice(0, 300));
+      if (/model/i.test(err)) res = await call("whisper-1");
+    }
+    if (!res.ok) return "";
+    const body = (await res.json()) as { text?: unknown };
+    return typeof body.text === "string" ? body.text.trim() : "";
+  } catch (e) {
+    console.error("transcribe", (e as Error).message);
+    return "";
+  }
+}

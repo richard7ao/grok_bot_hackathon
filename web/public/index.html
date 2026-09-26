@@ -84,7 +84,9 @@
       <button id="r-hints" aria-pressed="true"><span><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><small>Prompt</small></button>
       <button id="r-guide" aria-pressed="false"><span><svg viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><circle cx="12" cy="11" r="3"/></svg></span><small>Guides</small></button>
       <button id="r-sticker-toggle" aria-pressed="true"><span><svg viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7l-7 7H6a2 2 0 0 1-2-2z"/><path d="M20 13h-5a2 2 0 0 0-2 2v5"/></svg></span><small>Sticker</small></button>
+      <button id="r-upload" aria-label="Upload a video"><span><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4"/></svg></span><small>Upload video</small></button>
     </div>
+    <input id="r-file" type="file" accept="video/*" hidden>
     <p id="r-captions" class="captions" aria-live="polite"></p>
     <div id="r-count" class="countdown" hidden aria-live="assertive"></div>
     <div class="cam-bottom">
@@ -95,6 +97,7 @@
         <button id="r-go" aria-label="Start recording" disabled></button>
         <button id="r-stop" aria-label="Stop recording" hidden disabled></button>
       </div>
+      <button id="r-upload-link" class="upload-link">or upload a video</button>
     </div>
     <div id="r-blocked" class="blocked" hidden>
       <div class="blocked-card">
@@ -117,7 +120,7 @@
     </div>
     <div class="take-sheet">
       <div class="handle"></div>
-      <p class="heard">Your stylist will hear:</p>
+      <p id="p-heard" class="heard">Your stylist will hear:</p>
       <p id="p-transcript" class="said"></p>
       <ul class="rchips light">
         <li id="p-chip-outfit" data-chip="outfit">Outfit</li><li id="p-chip-styling" data-chip="styling">Styling</li><li id="p-chip-detail" data-chip="detail">Drop-card detail</li>
