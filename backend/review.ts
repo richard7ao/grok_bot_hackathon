@@ -39,7 +39,7 @@ function fakeReview(drop: Drop, transcript: string): Review {
           : { id: c.id, result: "pass", evidence: "Fake review." },
       ),
       feedback: detail ? "Great entry." : "Add one detail from the drop card, then submit again.",
-      suggested_caption: detail ? "My take on the Fleek chore jacket." : null,
+      suggested_caption: detail ? "My styling take on the Fleek Birkin drop." : null,
     },
     drop.rubric.map((c) => c.id),
   );

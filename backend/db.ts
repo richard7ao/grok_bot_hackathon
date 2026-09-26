@@ -67,19 +67,19 @@ function seedDrops(db: Database) {
      values (?,?,?,?,?,?,?,?,?,?,?,?)`,
   );
   insert.run(
-    1, "Reworked Chore Jacket — Brown Duck", "live", 8500, "/img/jacket.svg", lat, lng, 150,
-    "Show your current outfit in a 15-second video, then tell us how you would style the featured vintage jacket. Include one detail about the jacket from the drop card.",
-    JSON.stringify(["Brown duck canvas", "Blanket-lined body", "Corduroy collar", "Brass-tone buttons", "Size L"]),
+    1, "Pre-loved Hermès Birkin 25 — Gold Togo", "live", 1850000, "/img/birkin.svg", lat, lng, 150,
+    "Show your current outfit in a 15-second video, then tell us how you would style the Birkin. Include one detail about the bag from the drop card.",
+    JSON.stringify(["Gold Togo leather", "Gold-plated hardware", "25 cm, the most wanted size", "Authenticated by Fleek", "Box and dust bag included"]),
     JSON.stringify([
       { id: "outfit", label: "Show or describe your current outfit" },
-      { id: "styling_idea", label: "Say how you would style the jacket" },
+      { id: "styling_idea", label: "Say how you would style the bag" },
       { id: "product_detail", label: "Mention one detail from the drop card" },
       { id: "suitable", label: "Keep it relevant and suitable" },
     ]),
     3,
   );
-  insert.run(2, "Y2K Denim Drop", "preview", 6000, "/img/jacket.svg", lat + 0.0025, lng + 0.0033, 150, "Coming soon", "[]", "[]", 0);
-  insert.run(3, "Football Shirt Drop", "preview", 4500, "/img/jacket.svg", lat - 0.0022, lng - 0.0036, 150, "Coming soon", "[]", "[]", 0);
+  insert.run(2, "Vintage Fendi Baguette — 1999 Monogram", "preview", 145000, "/img/baguette.svg", lat + 0.0025, lng + 0.0033, 150, "Coming soon", "[]", "[]", 0);
+  insert.run(3, "Miu Miu Satin Ballet Flats — Blush", "preview", 79000, "/img/flats.svg", lat - 0.0022, lng - 0.0036, 150, "Coming soon", "[]", "[]", 0);
 }
 
 function logEvent(db: Database, type: string, detail: Record<string, unknown>) {

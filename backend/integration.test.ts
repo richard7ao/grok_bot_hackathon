@@ -28,9 +28,9 @@ async function start(port: number, env: Record<string, string> = {}) {
   throw new Error(`server on ${port} did not start`);
 }
 
-// "corduroy"/"collar" come from the seeded fact "Corduroy collar", so the fake review passes.
-const PASS = "Grey hoodie and black jeans. I would wear it open with the corduroy collar up.";
-const RETRY = "Grey hoodie and black jeans. I would wear it open.";
+// "hardware" comes from the seeded fact "Gold-plated hardware", so the fake review passes.
+const PASS = "Beige trench and white jeans. I would carry it on my arm and show off the gold hardware.";
+const RETRY = "Beige trench and white jeans. I would carry it on my arm.";
 
 function entry(transcript: string, extra: Record<string, string> = {}, video = new Uint8Array(1000)) {
   const f = new FormData();
