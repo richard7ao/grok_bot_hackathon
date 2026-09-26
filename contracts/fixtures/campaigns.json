@@ -8,8 +8,8 @@
       "status": "live",
       "price_pence": 1850000,
       "image_url": "/img/photos/birkin.jpg",
-      "lat": 51.5243,
-      "lng": -0.0746,
+      "lat": 51.517,
+      "lng": -0.0727,
       "radius_m": 150,
       "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Birkin. Include one detail about it from the drop card.",
       "facts": [
@@ -155,8 +155,8 @@
       "status": "live",
       "price_pence": 19000,
       "image_url": "/img/photos/xt6.jpg",
-      "lat": 51.5117,
-      "lng": -0.124,
+      "lat": 51.5174,
+      "lng": -0.0719,
       "radius_m": 150,
       "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the XT-6s. Include one detail about it from the drop card.",
       "facts": [

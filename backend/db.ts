@@ -88,8 +88,8 @@ function migrate(db: Database) {
 }
 
 function seedDrops(db: Database) {
-  const lat = Number(process.env.VENUE_LAT ?? 51.5243);
-  const lng = Number(process.env.VENUE_LNG ?? -0.0746);
+  const lat = Number(process.env.VENUE_LAT ?? 51.517);
+  const lng = Number(process.env.VENUE_LNG ?? -0.0727);
   const insert = db.query(
     `insert into drops (${V1_DROP_COLUMNS},brand,description,public_launch_at)
      values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
@@ -112,7 +112,7 @@ function seedDrops(db: Database) {
       ["Faded brown duck canvas", "Blanket-lined body", "Corduroy collar", "Union-made tag, pre-2000", "Size L"],
       ["Show or describe your current outfit", "Say how you would style the jacket", "Mention one detail from the drop card", "Keep it relevant and suitable"],
       8, "Fleek Workwear", "Blanket-lined Detroit jackets from the 90s, faded and broken in.", "2026-10-04T10:00:00.000Z"],
-    [4, "Salomon XT-6 — Black/Phantom, Deadstock", "live", 19000, "/img/photos/xt6.jpg", 51.5117, -0.124, 150, "Show your current outfit in a 15-second video, then tell us how you would style the XT-6s. Include one detail about it from the drop card.",
+    [4, "Salomon XT-6 — Black/Phantom, Deadstock", "live", 19000, "/img/photos/xt6.jpg", 51.5174, -0.0719, 150, "Show your current outfit in a 15-second video, then tell us how you would style the XT-6s. Include one detail about it from the drop card.",
       ["Deadstock, never worn", "Quicklace system", "Black/Phantom colourway", "UK 9", "Original box"],
       ["Show or describe your current outfit", "Say how you would style the XT-6s", "Mention one detail from the drop card", "Keep it relevant and suitable"],
       6, "Fleek Sneakers", "Deadstock Salomon XT-6 trail runners, the gorpcore staple that keeps selling out.", "2026-10-06T10:00:00.000Z"],

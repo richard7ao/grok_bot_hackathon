@@ -338,7 +338,8 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; background: tra
 .drop-card:active { transform: scale(.96); transition-duration: .12s; }
 
 /* Ripple on live map pins; softer pulse on the user dot. */
-.pin { position: relative; isolation: isolate; }
+/* No position here: MapLibre positions markers absolutely; overriding it makes pins drift. */
+.pin { isolation: isolate; }
 .pin.live::before, .pin.live::after { content: ""; position: absolute; top: 0; left: 50%; z-index: -1; width: 46px; height: 46px; margin-left: -23px; border-radius: 50%; border: 2px solid var(--cobalt); opacity: 0; animation: ripple 2.6s cubic-bezier(.2,.6,.4,1) infinite; pointer-events: none; }
 .pin.live::after { animation-delay: 1.3s; }
 @keyframes ripple { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(2.3); opacity: 0; } }
