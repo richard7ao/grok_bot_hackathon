@@ -166,7 +166,7 @@ export function saveReview(db: Database, attemptId: number, review: { verdict: s
 
 function withSuffix(caption: string | null) {
   const c = (caption ?? DEFAULT_CAPTION).trim();
-  return c.includes(CAPTION_SUFFIX) ? c : `${c} ${CAPTION_SUFFIX}`;
+  return c.endsWith(CAPTION_SUFFIX) ? c : `${c} ${CAPTION_SUFFIX}`;
 }
 
 // BEGIN IMMEDIATE and synchronous: nothing else runs between the count and the insert.
