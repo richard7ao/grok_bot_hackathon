@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Gold leather top-handle bag with gold hardware">
+  <path d="M64 78 C64 34 88 26 100 26 C112 26 136 34 136 78" fill="none" stroke="#A66F2E" stroke-width="9" stroke-linecap="round"/>
+  <path d="M74 78 C74 44 92 38 100 38 C108 38 126 44 126 78" fill="none" stroke="#B87D38" stroke-width="7" stroke-linecap="round"/>
+  <path d="M40 76 H160 L170 168 Q170 176 162 176 H38 Q30 176 30 168 Z" fill="#C8913E"/>
+  <path d="M30 168 Q30 176 38 176 H162 Q170 176 170 168 L169 160 H31 Z" fill="#B27C33"/>
+  <path d="M40 76 H160 L163 108 Q100 124 37 108 Z" fill="#D6A052"/>
+  <path d="M37 108 Q100 124 163 108" fill="none" stroke="#9A662A" stroke-width="1.6" stroke-dasharray="3 3"/>
+  <path d="M60 80 L58 118 M140 80 L142 118" stroke="#A66F2E" stroke-width="10" stroke-linecap="round"/>
+  <rect x="50" y="108" width="17" height="12" rx="2" fill="#E6C36A" stroke="#B08A34" stroke-width="1.2"/>
+  <rect x="133" y="108" width="17" height="12" rx="2" fill="#E6C36A" stroke="#B08A34" stroke-width="1.2"/>
+  <rect x="88" y="110" width="24" height="16" rx="4" fill="#E6C36A" stroke="#B08A34" stroke-width="1.4"/>
+  <circle cx="100" cy="118" r="4" fill="#F3DB94" stroke="#B08A34" stroke-width="1.2"/>
+  <path d="M112 124 q10 6 8 20" fill="none" stroke="#B08A34" stroke-width="1.6"/>
+  <path d="M114 140 h14 v16 q0 5 -5 5 h-4 q-5 0 -5 -5 Z" fill="#E6C36A" stroke="#B08A34" stroke-width="1.4"/>
+  <path d="M117 140 v-6 a4 4 0 0 1 8 0 v6" fill="none" stroke="#B08A34" stroke-width="1.8"/>
+  <g fill="#E6C36A" stroke="#B08A34" stroke-width="1"><circle cx="40" cy="170" r="3"/><circle cx="160" cy="170" r="3"/></g>
+</svg>
