@@ -1,6 +1,6 @@
 // HotDrop customer app. Vanilla JS; screens are <section class="screen"> toggled by show().
 const $ = (sel) => document.querySelector(sel);
-const st = { drops: [], drop: null, pos: null, res: null, clip: null, timer: null, attemptsLeft: null, durationMs: 0, pending: null, waitTimer: null };
+const st = { drops: [], drop: null, pos: null, res: null, clip: null, timer: null, attemptsLeft: null, durationMs: 0, pending: null, pollTimer: null, polling: false, waitScored: false };
 const pounds = (pence) => (pence / 100).toLocaleString("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: pence % 100 ? 2 : 0 });
 
 // Quest step per screen, drawn as the stories-style bars under the header.
@@ -275,10 +275,10 @@ async function boot() {
   }
   drawDrops();
   const live = st.drops.filter((d) => d.status === "live");
-  // Reload during the review wait: go back to s-wait with the remaining time.
+  // Reload while a take is in the queue: go back to s-wait and keep polling it.
   const pending = loadPending();
   const pendingDrop = st.drops.find((d) => d.id === pending?.drop_id);
-  if (pending?.body?.attempt && pendingDrop) {
+  if (pending?.attempt_id != null && pendingDrop) {
     st.drop = pendingDrop;
     st.attemptsLeft = pending.attempts_left ?? null;
     return enterWait(pending);
@@ -699,16 +699,17 @@ async function submitClip(demoPass = false) {
   } finally {
     clearTimeout(stage);
   }
-  if (body.attempt.verdict === "error" || demoPass) return showResult(body); // nothing to wait for
-  st.attemptsLeft = Math.max(0, (st.attemptsLeft ?? 3) - 1);
-  enterWait({ body, reveal_at: Date.now() + REVIEW_WAIT_MS, drop_id: st.drop.id, attempts_left: st.attemptsLeft });
+  if (body.attempt.verdict !== "error" && !demoPass) st.attemptsLeft = Math.max(0, (st.attemptsLeft ?? 3) - 1);
+  if (body.attempt.verdict === "pending") return enterWait({ attempt_id: body.attempt.id, drop_id: st.drop.id, attempts_left: st.attemptsLeft }, body);
+  showResult(body);
 }
 $("#p-submit").onclick = () => submitClip(false);
 $("#p-skip").onclick = () => submitClip(true);
 
-// Review wait. The verdict is already in `body`; only its reveal is delayed (see the comment on #s-wait).
-const REVIEW_WAIT_MS = 45000;
-const WAIT_STAGES = ["Watching your clip…", "Reading what you said…", "Checking the drop card…", "Writing your notes…"];
+// Queue: a pending take is scored and waits for the merchant's pick. We poll the attempt until it
+// becomes pass (a hold was claimed) or retry (passed over). dq_pending survives a reload.
+const POLL_MS = 3000;
+const METRICS = [["outfit", "Outfit"], ["styling", "Styling"], ["product_detail", "Drop-card detail"], ["energy", "Energy"], ["quality", "Video quality"]];
 
 function savePending(p) {
   try {
@@ -724,37 +725,105 @@ function loadPending() {
   }
 }
 
-function enterWait(p) {
+function countUp(node, to, ms = 900) {
+  node.textContent = String(to);
+  if (REDUCED.matches) return;
+  const t0 = performance.now();
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / ms);
+    node.textContent = String(Math.round(to * (1 - (1 - p) ** 3)));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+// Score ring (pathLength 100, so offset = 100 - score) plus one bar per metric; CSS transitions do the fill.
+function drawScore(ring, num, list, a) {
+  const score = a.score ?? 0;
+  $(num).closest(".score-ring").setAttribute("aria-label", `Score ${score} out of 100`);
+  $(list).classList.remove("filled");
+  $(list).replaceChildren(
+    ...METRICS.map(([key, label], i) => {
+      const v = a.scores?.[key] ?? 0, row = li(""), bar = el("i"), fill = el("b");
+      fill.style.cssText = `--w:${v * 10}%;transition-delay:${250 + i * 90}ms`;
+      bar.append(fill);
+      row.append(el("span", "", label), bar, el("em", "tnum", `${v}/10`));
+      return row;
+    }),
+  );
+  $(ring).style.strokeDashoffset = "100";
+  countUp($(num), score);
+  // Two frames later, so the screen is laid out and the ring and bars transition from empty.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    $(ring).style.strokeDashoffset = String(100 - score);
+    $(list).classList.add("filled");
+  }));
+}
+
+function enterWait(p, body) {
   st.pending = p;
+  st.waitScored = false;
   savePending(p);
   const frame = st.clip?.frames[0];
   $("#w-thumb").src = frame ? URL.createObjectURL(frame) : st.drop.image_url;
   $("#w-len").textContent = st.clip ? `▶ my take · 0:${String(Math.round(st.clip.durationMs / 1000)).padStart(2, "0")}` : "▶ my take";
-  $("#w-held").hidden = !p.body.reservation;
   show("s-wait");
-  clearInterval(st.waitTimer);
-  const draw = () => {
-    const left = p.reveal_at - Date.now();
-    if (left <= 0) return reveal();
-    const done = Math.max(0, 1 - left / REVIEW_WAIT_MS);
-    $("#w-bar").style.width = `${Math.max(3, done * 100)}%`;
-    $("#w-stage").textContent = WAIT_STAGES[Math.min(WAIT_STAGES.length - 1, Math.floor(done * WAIT_STAGES.length))];
-    const n = Math.ceil(Math.min(1, left / REVIEW_WAIT_MS) * 5);
-    $("#w-queue").textContent = n > 1 ? `You're #${n} in the queue` : "You're next";
-  };
-  st.waitTimer = setInterval(draw, 500);
-  draw();
+  clearInterval(st.pollTimer);
+  st.pollTimer = setInterval(pollAttempt, POLL_MS);
+  if (body) renderQueue(body.attempt);
+  else pollAttempt(); // after a reload we have only the id
 }
 
-function reveal() {
-  clearInterval(st.waitTimer);
-  const p = st.pending;
-  if (!p) return;
+function renderQueue(a) {
+  $("#w-rank").textContent = a.rank ? `You're #${a.rank} in the queue` : "You're in the queue";
+  $("#w-feedback").textContent = a.feedback;
+  $("#w-poll").textContent = "Checking for the merchant's pick";
+  if (st.waitScored) return; // animate the score once, not on every poll
+  st.waitScored = true;
+  drawScore("#w-ring", "#w-score", "#w-metrics", a);
+}
+
+function stopWait() {
+  clearInterval(st.pollTimer);
   st.pending = null;
   savePending(null);
-  showResult(p.body);
 }
-$("#w-skip").onclick = reveal;
+
+async function pollAttempt() {
+  const p = st.pending;
+  if (!p || st.polling) return;
+  st.polling = true;
+  try {
+    const body = await api(`/api/attempts/${p.attempt_id}`);
+    if (st.pending !== p) return; // the demo skip resolved it meanwhile
+    if (body.attempt.verdict === "pending") return renderQueue(body.attempt);
+    stopWait();
+    showResult(body);
+  } catch (e) {
+    if (st.pending !== p) return;
+    if (e.code !== "NOT_FOUND") return ($("#w-poll").textContent = "Connection lost. Retrying…");
+    stopWait();
+    showResult(null, e);
+  } finally {
+    st.polling = false;
+  }
+}
+
+// Demo only: a presenter approves the queued take as the merchant would.
+$("#w-skip").onclick = async () => {
+  const id = st.pending?.attempt_id;
+  if (id == null) return;
+  $("#w-skip").disabled = true;
+  try {
+    const body = await api(`/api/attempts/${id}/approve`, { method: "POST" });
+    stopWait();
+    showResult(body);
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    $("#w-skip").disabled = false;
+  }
+};
 
 const ruleLabel = (id) => st.drop.rubric.find((c) => c.id === id)?.label ?? id;
 const NO_RETRY = ["ATTEMPTS_EXHAUSTED", "DROP_NOT_LIVE", "ALREADY_RESERVED"];
@@ -768,7 +837,7 @@ function showResult(body, err) {
     return confetti($("#s-share .ring-wrap"));
   }
   $("#s-result").classList.remove("expired");
-  $("#res-title").textContent = err ? "Couldn't submit" : a.verdict === "pass" ? "Qualified, but the allocation is full" : a.verdict === "error" ? "The reviewer is unavailable" : "Almost there";
+  $("#res-title").textContent = err ? "Couldn't submit" : a.verdict === "pass" ? "Qualified, but the allocation is full" : a.verdict === "error" ? "The reviewer is unavailable" : "Not picked this time";
   $("#res-feedback").textContent = err ? err.message : body.error === "ALREADY_RESERVED" ? "You already hold this drop." : a.feedback;
   $("#res-criteria").replaceChildren(...(a?.criteria ?? []).map((c) => li(`${ruleLabel(c.id)}: ${c.evidence}`, c.result)));
   const canRetry = st.attemptsLeft !== 0 && (err ? !NO_RETRY.includes(err.code) : a.verdict !== "pass");
@@ -780,7 +849,9 @@ function showResult(body, err) {
   // No attempt was created (e.g. no speech caught): the demo button re-submits the same clip as a pass.
   st.skipResubmit = st.approveId == null && Boolean(err) && Boolean(st.clip) && !NO_RETRY.includes(err.code);
   $("#res-approve").hidden = st.approveId == null && !st.skipResubmit;
+  $("#res-score").hidden = a?.score == null;
   show("s-result");
+  if (a?.score != null) drawScore("#res-ring", "#res-score-n", "#res-metrics", a);
   staggerIn($("#res-criteria").children, 70, 260);
 }
 $("#res-approve").onclick = async () => {
