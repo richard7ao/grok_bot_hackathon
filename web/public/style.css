@@ -129,3 +129,6 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; background: tra
 .toast { position: fixed; left: 50%; bottom: 24px; z-index: 1000; transform: translateX(-50%); padding: 11px 18px; border-radius: 999px; background: var(--ink); color: var(--cream); font-size: 14px; font-weight: 500; box-shadow: 0 12px 30px -12px rgba(38,43,34,.5); }
 
 .leaflet-tile-pane { filter: grayscale(1) sepia(0.18) brightness(1.08) contrast(0.82); }
+
+/* .cta/.link set display, which would otherwise override the hidden attribute. */
+[hidden] { display: none !important; }
