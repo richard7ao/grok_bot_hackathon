@@ -60,13 +60,17 @@ async function mock(req: Request, url: URL): Promise<Response> {
   return Response.json({ error: "NOT_FOUND", message: `mock has no ${m} ${p}` }, { status: 404 });
 }
 
+// Clean URLs: the landing page at "/", the shopper app at /mobile, merchant Studio at /desktop.
+const PAGES: Record<string, string> = { "/": "landing.html", "/mobile": "index.html", "/desktop": "studio.html" };
+
 Bun.serve({
   port: PORT,
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/uploads/"))
       return API_URL ? proxy(req, url) : mock(req, url);
-    const path = url.pathname === "/" ? "index.html" : url.pathname.slice(1).replaceAll("..", "");
+    const pathname = url.pathname.replace(/\/+$/, "") || "/";
+    const path = PAGES[pathname] ?? pathname.slice(1).replaceAll("..", "");
     const file = Bun.file(PUBLIC + path);
     return (await file.exists()) ? new Response(file) : new Response("Not found", { status: 404 });
   },
