@@ -49,7 +49,7 @@ type ErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "DROP_NOT_LIVE" | "BAD_DURATION"
 | GET /api/drops | — | `{ server_time, drops: Drop[] }` (live + preview only; drafts and ended hidden) | — |
 | GET /api/drops/:id/state | — | `{ attempts_used, max_attempts, reservation: Reservation \| null }` | 404 |
 | POST /api/drops/:id/attempts | multipart: `video` (file), `frame0..frame3` (jpeg), `transcript`, `duration_ms` (no location check: any `lat`/`lng`/`debug` fields are ignored) | `{ attempt: Attempt, reservation: Reservation \| null, error: null \| "NO_STOCK" \| "ALREADY_RESERVED" }` | 400 BAD_REQUEST, 409 DROP_NOT_LIVE / ATTEMPTS_EXHAUSTED / ALREADY_RESERVED, 413 TOO_LARGE, 422 BAD_DURATION |
-| POST /api/attempts/:id/approve | — (demo only; disabled when `DEMO_MODE=0`) | same as POST /api/drops/:id/attempts: the latest `retry`/`error` attempt becomes `pass` and a hold is claimed | 404 NOT_FOUND (no attempt, or DEMO_MODE=0), 409 BAD_STATE (not the latest attempt, or already pass) |
+| POST /api/attempts/:id/approve | — (demo only; enabled only when `DEMO_MODE=1`) | same as POST /api/drops/:id/attempts: the latest `retry`/`error` attempt becomes `pass` and a hold is claimed | 404 NOT_FOUND (no attempt, or `DEMO_MODE` is not `1`), 409 BAD_STATE (not the latest attempt, or already pass) |
 | GET /api/reservations/:id | — | `Reservation` | 404 |
 | POST /api/reservations/:id/posted | — | `Reservation` (status posted, expires_at = now + 5 min) | 409 HOLD_EXPIRED / BAD_STATE |
 | POST /api/reservations/:id/buy | — | `Reservation` (status purchased) | 409 HOLD_EXPIRED / BAD_STATE |
@@ -89,7 +89,7 @@ Flow for `POST /api/drops/:id/attempts` (response shape unchanged: `{ attempt, r
 - `auto_review` off: `verdict: "pending"`, `reservation: null`. No stock is held until the merchant approves.
 - `auto_review` on: `pass` (and a hold is claimed) when every metric meets its threshold; otherwise `retry` with feedback.
 - `error` is unchanged (model failure; doesn't count as an attempt). A pending take counts as an attempt.
-- Demo skip (`demo_pass=1`) and `POST /api/attempts/:id/approve` still jump straight to `pass` with a hold.
+- Demo skip (`demo_pass=1`) and `POST /api/attempts/:id/approve` jump straight to `pass` with a hold, only when `DEMO_MODE=1`; otherwise `demo_pass` is ignored and approve returns 404.
 
 | Method, path | Request | 200 response | Errors |
 | --- | --- | --- | --- |

@@ -373,22 +373,22 @@
     },
     {
       "id": 12,
-      "brand": "Fleek Collectibles",
-      "title": "Labubu The Monsters — Secret Edition",
-      "description": "A secret-edition Labubu from The Monsters series, checked and authenticated.",
+      "brand": "Fleek Watches",
+      "title": "Omega x Swatch MoonSwatch — Mission to the Moonphase Snoopy",
+      "description": "The Snoopy moonphase MoonSwatch that sparked the longest queues — unworn with box.",
       "status": "live",
-      "price_pence": 6500,
-      "image_url": "/img/photos/labubu.jpg",
+      "price_pence": 45000,
+      "image_url": "/img/photos/moonswatch.jpg",
       "lat": 51.5117,
       "lng": -0.124,
       "radius_m": 150,
-      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Labubu. Include one detail about it from the drop card.",
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the MoonSwatch. Include one detail about it from the drop card.",
       "facts": [
-        "Pop Mart The Monsters series",
-        "Secret edition",
-        "Vinyl face, plush body",
-        "Authenticity card included",
-        "Sealed box opened for check"
+        "White Snoopy moonphase dial",
+        "Bioceramic case, 42 mm",
+        "Speedmaster-inspired chronograph",
+        "Only sold in Swatch stores",
+        "Unworn, with box"
       ],
       "rubric": [
         {
@@ -397,7 +397,7 @@
         },
         {
           "id": "styling_idea",
-          "label": "Say how you would style the Labubu"
+          "label": "Say how you would style the MoonSwatch"
         },
         {
           "id": "product_detail",
@@ -408,8 +408,8 @@
           "label": "Keep it relevant and suitable"
         }
       ],
-      "allocation_total": 12,
-      "available": 12,
+      "allocation_total": 6,
+      "available": 6,
       "hold_minutes": 10,
       "public_launch_at": "2026-10-02T10:00:00.000Z"
     },

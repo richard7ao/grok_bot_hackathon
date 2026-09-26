@@ -10,3 +10,5 @@ services:
         sync: false
       - key: OPENAI_MODEL
         value: gpt-5.4-mini
+      - key: DEMO_MODE
+        value: "1"
