@@ -311,3 +311,39 @@ test("a new live campaign takes a passing entry and holds for its own hold_minut
   expect(detail.stats.held).toBe(1);
   expect(detail.events.map((e: any) => e.type)).toContain("hold_claimed");
 });
+
+test("demo approve turns the latest retry into a pass with a held reservation", async () => {
+  const retry = (await (await post(api, "/api/drops/1/attempts", entry(RETRY))).json()).attempt;
+  const res = await post(api, `/api/attempts/${retry.id}/approve`);
+  expect(res.status).toBe(200);
+  const body = await res.json();
+  expect(keys(body)).toEqual(keys(await fixture("attempt-pass.json")));
+  expect(body.attempt.verdict).toBe("pass");
+  expect(body.attempt.criteria.every((c: any) => c.result === "pass")).toBe(true);
+  expect(body.reservation.status).toBe("held");
+  expect(body.error).toBeNull();
+  const state = await (await fetch(`${api}/api/drops/1/state`)).json();
+  expect(state.attempts_used).toBe(1);
+  expect(state.reservation.status).toBe("held");
+  const events = (await (await fetch(`${api}/api/dashboard`)).json()).events;
+  expect(events.some((e: any) => e.type === "demo_approved")).toBe(true);
+});
+
+test("demo approve refuses a pass or an older attempt with 409 BAD_STATE, unknown with 404", async () => {
+  const older = (await (await post(api, "/api/drops/1/attempts", entry(RETRY))).json()).attempt;
+  const passed = (await (await post(api, "/api/drops/1/attempts", entry(PASS))).json()).attempt;
+  for (const id of [passed.id, older.id]) {
+    const res = await post(api, `/api/attempts/${id}/approve`);
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("BAD_STATE");
+  }
+  expect((await post(api, "/api/attempts/99999/approve")).status).toBe(404);
+});
+
+test("demo approve is 404 when DEMO_MODE=0", async () => {
+  const base = await start(3909, { DEMO_MODE: "0" });
+  const retry = (await (await post(base, "/api/drops/1/attempts", entry(RETRY))).json()).attempt;
+  const res = await post(base, `/api/attempts/${retry.id}/approve`);
+  expect(res.status).toBe(404);
+  expect((await res.json()).error).toBe("NOT_FOUND");
+});

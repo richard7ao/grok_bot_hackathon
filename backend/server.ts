@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { basename, join } from "node:path";
 import { readJson, validateCampaign } from "./campaigns";
-import { ApiError, buy, campaignDetail, claimHold, createAttempt, createCampaign, dashboard, dropState, getDrop, getReservation, listCampaigns, listDrops, markPosted, openDb, reset, saveReview, updateCampaign } from "./db";
+import { ApiError, approveAttempt, buy, campaignDetail, claimHold, createAttempt, createCampaign, dashboard, dropState, getDrop, getReservation, listCampaigns, listDrops, markPosted, openDb, reset, saveReview, updateCampaign, type Drop } from "./db";
 import { draftChallenge, parseDraftInput } from "./draft";
 import { errorReview, reviewAttempt, type Review } from "./review";
 
@@ -59,15 +59,24 @@ async function postAttempt(req: Req) {
     review = errorReview("Could not process your clip");
   }
   saveReview(db, attempt.id, review);
+  return attemptResponse(drop, { id: attempt.id, n: attempt.n, ...review });
+}
 
+function attemptResponse(drop: Drop, attempt: Review & { id: number; n: number }) {
   let reservation = null;
   let error = null;
-  if (review.verdict === "pass") {
-    const claimed = claimHold(db, drop, attempt.id, review.suggested_caption);
+  if (attempt.verdict === "pass") {
+    const claimed = claimHold(db, drop, attempt.id, attempt.suggested_caption);
     if (typeof claimed === "string") error = claimed;
     else reservation = claimed;
   }
-  return Response.json({ attempt: { id: attempt.id, n: attempt.n, ...review }, reservation, error });
+  return Response.json({ attempt, reservation, error });
+}
+
+function approve(req: Req) {
+  if (process.env.DEMO_MODE === "0") throw new ApiError(404, "NOT_FOUND", "No such route");
+  const { drop, attempt } = approveAttempt(db, idOf(req));
+  return attemptResponse(drop, attempt);
 }
 
 const server = Bun.serve({
@@ -78,6 +87,7 @@ const server = Bun.serve({
     "/api/drops": { GET: handle(() => Response.json({ server_time: new Date().toISOString(), drops: listDrops(db) })) },
     "/api/drops/:id/state": { GET: handle((req) => Response.json(dropState(db, idOf(req)))) },
     "/api/drops/:id/attempts": { POST: handle(postAttempt) },
+    "/api/attempts/:id/approve": { POST: handle(approve) },
     "/api/reservations/:id": { GET: handle((req) => Response.json(getReservation(db, idOf(req)))) },
     "/api/reservations/:id/posted": { POST: handle((req) => Response.json(markPosted(db, idOf(req)))) },
     "/api/reservations/:id/buy": { POST: handle((req) => Response.json(buy(db, idOf(req)))) },

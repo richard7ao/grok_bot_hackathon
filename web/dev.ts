@@ -32,6 +32,11 @@ async function mock(req: Request, url: URL): Promise<Response> {
     if (body.reservation) body.reservation.expires_at = inMs(600_000);
     return Response.json(body);
   }
+  if (m === "POST" && /^\/api\/attempts\/\d+\/approve$/.test(p)) {
+    const body = await fixture("attempt-pass.json");
+    body.reservation.expires_at = inMs(600_000);
+    return Response.json(body);
+  }
   if (m === "POST" && /^\/api\/reservations\/\d+\/posted$/.test(p))
     return Response.json({ ...(await fixture("reservation-posted.json")), expires_at: inMs(300_000) });
   if (m === "POST" && /^\/api\/reservations\/\d+\/buy$/.test(p))
