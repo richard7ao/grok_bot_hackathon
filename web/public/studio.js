@@ -22,12 +22,15 @@ const EVENT_LABELS = {
   reset: "Demo data reset",
 };
 const POLL_MS = 3000;
+const METRICS = [["outfit", "Outfit"], ["styling", "Styling"], ["product_detail", "Drop-card detail"], ["energy", "Energy"], ["quality", "Video quality"]];
+const DECIDED = { pass: "Approved", retry: "Rejected", error: "Error" };
+const DECISION_ERRORS = { NO_STOCK: "No stock left. Free up a hold before approving.", ALREADY_RESERVED: "This customer already holds one of these.", BAD_STATE: "This take was already decided." };
 const $ = (id) => document.getElementById(id);
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 });
 const when = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const clock = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-const state = { campaigns: [], filter: "all", openId: null, poll: null, editingId: null, image: IMAGES[0], facts: [], map: null, pin: null, fresh: false, prev: {}, seen: null };
+const state = { campaigns: [], filter: "all", openId: null, poll: null, editingId: null, image: IMAGES[0], facts: [], map: null, pin: null, fresh: false, prev: {}, seen: null, qcards: new Map(), arDirty: false };
 
 // Motion: Web Animations API only (no library needed here); springs are CSS easings in studio.css.
 // Every effect is a no-op under prefers-reduced-motion.
@@ -62,6 +65,7 @@ async function api(path, opts = {}) {
   if (!res.ok) {
     const err = new Error(body.message || `Request failed (${res.status})`);
     err.status = res.status;
+    err.code = body.error;
     throw err;
   }
   return body;
@@ -222,6 +226,9 @@ async function openDetail(id) {
   state.fresh = true; // first render of this campaign: grow bars and count up from 0
   state.prev = {};
   state.seen = null;
+  state.qcards = new Map();
+  state.arDirty = false;
+  $("review-queue").replaceChildren();
   setNav("campaigns");
   try {
     renderDetail(await api(`/api/campaigns/${id}`));
@@ -292,9 +299,13 @@ function renderDetail({ campaign: c, stats: s, reviews, events }) {
 
   const reviewKey = (r) => `r${r.attempt_id ?? r.n}`;
   const eventKey = (e) => `e${e.type}|${e.at}|${JSON.stringify(e.detail ?? {})}`;
-  $("reviews").replaceChildren(...(reviews.length ? reviews.map((r) => withKey(review(r), reviewKey(r))) : [el("p", "empty", "No attempts yet. Reviews appear here as creators submit.")]));
+  const pending = reviews.filter((r) => r.verdict === "pending").sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+  const decided = reviews.filter((r) => r.verdict !== "pending");
+  renderSettings(c.review);
+  renderQueue(pending);
+  $("reviews").replaceChildren(...(decided.length ? decided.map((r) => withKey(decidedRow(r), reviewKey(r))) : [el("p", "empty", "Nothing decided yet.")]));
   $("activity").replaceChildren(...(events.length ? events.map((e) => withKey(activity(e), eventKey(e))) : [el("li", "empty", "Nothing yet.")]));
-  animateNew([...$("reviews").children, ...$("activity").children]);
+  animateNew([...$("review-queue").children, ...$("reviews").children, ...$("activity").children]);
   state.fresh = false;
 }
 
@@ -311,22 +322,195 @@ function animateNew(nodes) {
   fresh.forEach((n, i) => (state.seen.add(n.dataset.key), fx(n, { opacity: [0, 1], transform: ["translateY(-14px)", "none"], filter: ["blur(4px)", "blur(0)"] }, 420, i * 60)));
 }
 
-function review(r) {
-  const v = r.verdict ?? "pending";
-  const box = el("article", "review card");
-  const head = el("div", "rv-head");
-  head.append(el("span", `verdict ${v}`, v), el("b", null, `Attempt #${r.n}`), el("span", "small", fmtDate(r.created_at)));
-  const href = safeUrl(r.video_url);
-  if (href) {
-    const a = el("a", "clip", "Watch clip ↗");
-    a.href = href;
-    a.target = "_blank";
-    a.rel = "noopener";
-    head.append(a);
+/* ---------- Review queue ---------- */
+
+// Cards are keyed and reused across polls so a playing <video> or a half-typed note survives the 3 s refresh.
+function renderQueue(pending) {
+  const nodes = pending.map((r, i) => {
+    const key = `q${r.attempt_id}`;
+    let n = state.qcards.get(key);
+    if (!n) state.qcards.set(key, (n = withKey(queueCard(r), key)));
+    n.querySelector(".rank").textContent = `#${r.rank ?? i + 1}`;
+    n.classList.toggle("top", i === 0);
+    return n;
+  });
+  const live = new Set(nodes.map((n) => n.dataset.key));
+  for (const k of [...state.qcards.keys()]) if (!live.has(k)) state.qcards.delete(k);
+  const box = $("review-queue");
+  const cur = [...box.children];
+  if (!(cur.length === nodes.length && cur.every((n, i) => n === nodes[i])))
+    box.replaceChildren(...(nodes.length ? nodes : [el("p", "empty", "No takes waiting. New takes land here, best score first.")]));
+  $("queue-count").textContent = pending.length;
+  applyThresholds();
+}
+
+function scoreRing(score) {
+  const s = Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : null;
+  const ring = el("div", `ring ${s == null ? "" : s >= 80 ? "hi" : s >= 60 ? "mid" : "lo"}`);
+  ring.style.setProperty("--p", s ?? 0);
+  ring.setAttribute("aria-label", s == null ? "Not scored" : `Score ${s} out of 100`);
+  ring.append(el("b", null, s ?? "—"));
+  return ring;
+}
+
+function clip(r) {
+  const src = safeUrl(r.video_url);
+  if (!src) return el("span", "img-ph", "No clip");
+  const v = el("video");
+  v.muted = true;
+  for (const a of ["controls", "muted", "playsinline"]) v.setAttribute(a, "");
+  v.preload = "metadata";
+  v.onerror = () => v.replaceWith(el("span", "img-ph", "Clip unavailable"));
+  v.src = src;
+  return v;
+}
+
+function queueCard(r) {
+  const card = el("article", "take card");
+  card.tabIndex = 0;
+  card.setAttribute("aria-label", `Attempt ${r.n}, score ${r.score ?? "not scored"}. Press A to approve, R to pass.`);
+  const media = el("div", "take-media");
+  media.append(clip(r));
+
+  const body = el("div", "take-body");
+  const head = el("div", "take-head");
+  const who = el("div", "who");
+  who.append(el("span", "rank"), el("b", null, `Attempt #${r.n}`), el("span", "small", fmtDate(r.created_at)));
+  head.append(who, scoreRing(r.score));
+
+  const metrics = el("div", "metrics");
+  for (const [k, label] of METRICS) {
+    const v = r.scores?.[k];
+    const track = el("div", "m-bar");
+    track.dataset.v = v ?? 0;
+    track.dataset.metric = k;
+    track.style.setProperty("--t", `var(--t-${k}, 60%)`);
+    const fill = el("i");
+    fill.style.width = `${(v ?? 0) * 10}%`;
+    track.append(fill);
+    const row = el("div", "metric");
+    row.append(el("span", null, label), track, el("b", null, v == null ? "—" : `${v}/10`));
+    metrics.append(row);
   }
-  box.append(head, el("p", "feedback", r.feedback));
-  if (r.transcript) box.append(el("blockquote", null, r.transcript));
-  return box;
+  body.append(head, metrics);
+  if (r.transcript) body.append(el("blockquote", null, r.transcript));
+  if (r.feedback) body.append(el("p", "feedback", r.feedback));
+
+  const note = el("input", "note");
+  note.placeholder = "Note if you pass (optional)";
+  note.maxLength = 280;
+  note.setAttribute("aria-label", "Note for the customer if you pass");
+  const pass = el("button", "btn ghost", "Pass");
+  const approve = el("button", "btn primary", "Approve");
+  pass.type = approve.type = "button";
+  pass.onclick = () => decide(card, r, "reject");
+  approve.onclick = () => decide(card, r, "approve");
+  const actions = el("div", "take-actions");
+  actions.append(note, pass, approve);
+  const err = el("p", "take-err");
+  err.setAttribute("role", "alert");
+  err.hidden = true;
+  body.append(actions, err);
+
+  card.append(media, body);
+  card.onkeydown = (e) => {
+    if (e.target !== card || e.metaKey || e.ctrlKey) return;
+    const k = e.key.toLowerCase();
+    if (k === "a" || k === "r") decide(card, r, k === "a" ? "approve" : "reject");
+  };
+  return card;
+}
+
+const leave = (node, dx) =>
+  REDUCED.matches || !node.animate
+    ? Promise.resolve()
+    : node.animate({ opacity: [1, 0], transform: ["none", `translateX(${dx}px) scale(.98)`], filter: ["blur(0)", "blur(4px)"] }, { duration: 320, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" }).finished;
+
+async function decide(card, r, decision) {
+  if (card.dataset.busy) return;
+  card.dataset.busy = "1";
+  const err = card.querySelector(".take-err");
+  const buttons = [...card.querySelectorAll("button")];
+  const note = card.querySelector(".note").value.trim();
+  err.hidden = true;
+  buttons.forEach((b) => (b.disabled = true));
+  try {
+    const body = { attempt_id: r.attempt_id, decision, ...(decision === "reject" && note ? { note } : {}) };
+    const res = await api(`/api/campaigns/${state.openId}/decisions`, { method: "POST", body: JSON.stringify(body) });
+    if (res.error) throw Object.assign(new Error(res.error), { code: res.error });
+    await leave(card, decision === "approve" ? 60 : -60);
+    state.qcards.delete(card.dataset.key);
+    card.remove();
+    toast(decision === "approve" ? "Approved. Stock is on hold for them." : "Passed. They can try again.");
+    poll();
+  } catch (e) {
+    err.textContent = DECISION_ERRORS[e.code] || `Could not ${decision === "approve" ? "approve" : "pass"}: ${e.message}`;
+    err.hidden = false;
+    if (e.code) poll();
+  } finally {
+    delete card.dataset.busy;
+    buttons.forEach((b) => (b.disabled = false));
+  }
+}
+
+function decidedRow(r) {
+  const v = DECIDED[r.verdict] ? r.verdict : "error";
+  const row = el("article", "decided-row");
+  row.append(el("b", "d-score", r.score ?? "—"), el("span", "d-who", `Attempt #${r.n}`), el("span", "d-fb", r.feedback ?? ""), el("span", `verdict ${v}`, DECIDED[v]), el("time", "small", fmtDate(r.created_at)));
+  return row;
+}
+
+/* ---------- Auto-review settings ---------- */
+
+// Polls never overwrite the form while the merchant has unsaved edits.
+function renderSettings(rv) {
+  if (!rv) return;
+  $("ar-note").hidden = !rv.auto_review;
+  if (state.arDirty) return;
+  $("ar-toggle").checked = Boolean(rv.auto_review);
+  for (const [k] of METRICS) {
+    $(`th-${k}`).value = rv.thresholds?.[k] ?? 6;
+    $(`th-${k}-v`).textContent = $(`th-${k}`).value;
+  }
+  $("ar-prompt").value = rv.scoring_prompt ?? "";
+  $("ar-count").textContent = `${$("ar-prompt").value.length} / 1000`;
+}
+
+// Threshold ticks on every take follow the sliders live, saved or not.
+function applyThresholds() {
+  const box = $("review-queue");
+  for (const [k] of METRICS) box.style.setProperty(`--t-${k}`, `${Number($(`th-${k}`).value) * 10}%`);
+  for (const bar of box.querySelectorAll(".m-bar")) bar.classList.toggle("below", Number(bar.dataset.v) < Number($(`th-${bar.dataset.metric}`).value));
+}
+
+function onSettingsInput(e) {
+  state.arDirty = true;
+  if (e.target.type === "range") $(`${e.target.id}-v`).textContent = e.target.value;
+  $("ar-count").textContent = `${$("ar-prompt").value.length} / 1000`;
+  applyThresholds();
+}
+
+async function saveReview(e) {
+  e.preventDefault();
+  if (state.openId == null) return;
+  const review = {
+    auto_review: $("ar-toggle").checked,
+    thresholds: Object.fromEntries(METRICS.map(([k]) => [k, Number($(`th-${k}`).value)])),
+    scoring_prompt: $("ar-prompt").value.trim().slice(0, 1000),
+  };
+  $("ar-error").hidden = true;
+  $("ar-save").disabled = true;
+  try {
+    const saved = await api(`/api/campaigns/${state.openId}`, { method: "PATCH", body: JSON.stringify({ review }) });
+    state.arDirty = false;
+    $("ar-note").hidden = !(saved.review ?? review).auto_review;
+    toast("Review settings saved");
+  } catch (err) {
+    $("ar-error").textContent = `Could not save review settings: ${err.message}`;
+    $("ar-error").hidden = false;
+  } finally {
+    $("ar-save").disabled = false;
+  }
 }
 
 function eventLabel({ type, detail = {} }) {
@@ -638,6 +822,8 @@ $("filters").onclick = (e) => {
 $("new-campaign").onclick = () => openEditor(null);
 $("d-edit").onclick = () => state.detail && openEditor(state.detail);
 $("reset-demo").onclick = resetDemo;
+$("auto-review").addEventListener("input", onSettingsInput);
+$("auto-review").onsubmit = saveReview;
 $("ed-close").onclick = closeEditor;
 $("ed-cancel").onclick = closeEditor;
 $("scrim").onclick = closeEditor;
