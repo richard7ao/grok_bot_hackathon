@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getDrop, openDb } from "./db";
-import { reviewAttempt } from "./review";
+import { allScores, decide, reviewAttempt } from "./review";
 
 if (!process.env.OPENAI_API_KEY) throw new Error("Set OPENAI_API_KEY in the repo-root .env");
 const drop = getDrop(openDb(join(mkdtempSync(join(tmpdir(), "dq-smoke-")), "s.db")), 1)!;
@@ -18,9 +18,10 @@ const cases = [
 let ok = true;
 for (const c of cases) {
   const started = performance.now();
-  const r = await reviewAttempt({ drop, transcript: c.transcript, frames: c.frames });
+  // Auto-review at the default thresholds, so the expected verdicts still hold.
+  const r = decide(await reviewAttempt({ drop, transcript: c.transcript, frames: c.frames, scoringPrompt: "" }), { auto_review: true, thresholds: allScores(6), scoring_prompt: "" });
   const ms = Math.round(performance.now() - started);
-  console.log(`${c.expect.toUpperCase()} case -> ${r.verdict} in ${ms} ms: ${r.feedback}`);
+  console.log(`${c.expect.toUpperCase()} case -> ${r.verdict} (score ${r.score}) in ${ms} ms: ${r.feedback}`);
   if (r.verdict !== c.expect) ok = false;
 }
 process.exit(ok ? 0 : 1);

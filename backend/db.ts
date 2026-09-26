@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { allScores, demoPassReview, type Review, type ReviewSettings, type Scores } from "./review";
 
 export const MAX_ATTEMPTS = 3;
 const PURCHASE_MS = Number(process.env.PURCHASE_MS ?? 300_000);
@@ -18,15 +19,25 @@ create table if not exists ${name} (
   price_pence integer not null, image_url text not null, lat real not null, lng real not null,
   radius_m integer not null, prompt text not null, facts_json text not null, rubric_json text not null,
   allocation_total integer not null, brand text not null default '', description text not null default '',
-  hold_minutes integer not null default 10, public_launch_at text not null default ''
+  hold_minutes integer not null default 10, public_launch_at text not null default '',
+  ${V3_DROP_COLUMNS.join(", ")}
 );`;
-const SCHEMA = `${dropsTable("drops")}
-create table if not exists attempts (
+const V3_DROP_COLUMNS = [
+  "auto_review integer not null default 0",
+  `thresholds_json text not null default '${JSON.stringify(allScores(6))}'`,
+  "scoring_prompt text not null default ''",
+];
+const attemptsTable = (name: string) => `
+create table if not exists ${name} (
   id integer primary key, drop_id integer not null references drops(id), n integer not null,
   video_path text not null, transcript text not null, duration_ms integer not null,
-  verdict text check (verdict in ('pass','retry','error')), review_json text, created_at text not null,
+  verdict text check (verdict in ('pending','pass','retry','error')), review_json text, created_at text not null,
+  score integer, scores_json text,
   unique (drop_id, n)
-);
+);`;
+const V2_ATTEMPT_COLUMNS = "id,drop_id,n,video_path,transcript,duration_ms,verdict,review_json,created_at";
+const SCHEMA = `${dropsTable("drops")}
+${attemptsTable("attempts")}
 create table if not exists reservations (
   id integer primary key, drop_id integer not null references drops(id), attempt_id integer not null references attempts(id),
   status text not null check (status in ('held','posted','purchased')), expires_at text not null,
@@ -41,6 +52,7 @@ type DropRow = {
   id: number; title: string; status: DropStatus; price_pence: number; image_url: string;
   lat: number; lng: number; radius_m: number; prompt: string; facts_json: string; rubric_json: string;
   allocation_total: number; brand: string; description: string; hold_minutes: number; public_launch_at: string;
+  auto_review: number; thresholds_json: string; scoring_prompt: string;
 };
 export type DropStatus = "live" | "preview" | "draft" | "ended";
 export type CampaignInput = {
@@ -72,19 +84,24 @@ export function openDb(path = process.env.DB_PATH ?? "dropquest.db") {
   return db;
 }
 
-// v1 databases: events lacks drop_id, and the drops status CHECK is too narrow. SQLite cannot alter a
-// CHECK, so rebuild drops (create new, copy, drop, rename) with foreign keys off, per the SQLite docs.
+// SQLite cannot alter a CHECK, so v1 drops (narrow status CHECK) and v2 attempts (no 'pending' verdict)
+// are rebuilt (create new, copy, drop, rename) with foreign keys off, per the SQLite docs.
+function rebuild(db: Database, table: string, create: (name: string) => string, columns: string) {
+  db.exec("pragma foreign_keys = off");
+  db.transaction(() => {
+    db.exec(create(`${table}_new`));
+    db.exec(`insert into ${table}_new (${columns}) select ${columns} from ${table}`);
+    db.exec(`drop table ${table}; alter table ${table}_new rename to ${table};`);
+  })();
+  db.exec("pragma foreign_keys = on");
+}
+
 function migrate(db: Database) {
   const cols = (table: string) => (db.query(`pragma table_info(${table})`).all() as { name: string }[]).map((c) => c.name);
   if (!cols("events").includes("drop_id")) db.exec("alter table events add column drop_id integer");
-  if (cols("drops").includes("brand")) return;
-  db.exec("pragma foreign_keys = off");
-  db.transaction(() => {
-    db.exec(dropsTable("drops_new"));
-    db.exec(`insert into drops_new (${V1_DROP_COLUMNS}) select ${V1_DROP_COLUMNS} from drops`);
-    db.exec("drop table drops; alter table drops_new rename to drops;");
-  })();
-  db.exec("pragma foreign_keys = on");
+  if (!cols("drops").includes("brand")) rebuild(db, "drops", dropsTable, V1_DROP_COLUMNS);
+  if (!cols("drops").includes("auto_review")) for (const def of V3_DROP_COLUMNS) db.exec(`alter table drops add column ${def}`);
+  if (!cols("attempts").includes("score")) rebuild(db, "attempts", attemptsTable, V2_ATTEMPT_COLUMNS);
 }
 
 function seedDrops(db: Database) {
@@ -184,7 +201,7 @@ function activeCount(db: Database, dropId: number) {
 }
 
 function toDrop(db: Database, row: DropRow) {
-  const { facts_json, rubric_json, ...rest } = row;
+  const { facts_json, rubric_json, auto_review, thresholds_json, scoring_prompt, ...rest } = row;
   return {
     ...rest,
     facts: JSON.parse(facts_json) as string[],
@@ -228,9 +245,19 @@ function activeReservation(db: Database, dropId: number) {
   return db.query(`${RESERVATION_SELECT} where r.drop_id = ? and ${ACTIVE} order by r.id desc limit 1`).get(dropId, now()) as ReservationRow | null;
 }
 
+export function reviewSettings(db: Database, dropId: number): ReviewSettings {
+  const r = db.query("select auto_review, thresholds_json, scoring_prompt from drops where id = ?").get(dropId) as Pick<DropRow, "auto_review" | "thresholds_json" | "scoring_prompt">;
+  return { auto_review: r.auto_review === 1, thresholds: { ...allScores(6), ...JSON.parse(r.thresholds_json) }, scoring_prompt: r.scoring_prompt };
+}
+
+export function updateReviewSettings(db: Database, dropId: number, s: ReviewSettings) {
+  db.query("update drops set auto_review = ?, thresholds_json = ?, scoring_prompt = ? where id = ?")
+    .run(s.auto_review ? 1 : 0, JSON.stringify(s.thresholds), s.scoring_prompt, dropId);
+}
+
 // In-flight attempts (verdict null) count so a double-tap cannot exceed the limit; 'error' never counts.
 function countedAttempts(db: Database, dropId: number) {
-  return (db.query("select count(*) c from attempts where drop_id = ? and (verdict is null or verdict in ('pass','retry'))").get(dropId) as { c: number }).c;
+  return (db.query("select count(*) c from attempts where drop_id = ? and (verdict is null or verdict in ('pending','pass','retry'))").get(dropId) as { c: number }).c;
 }
 
 export function dropState(db: Database, dropId: number) {
@@ -252,30 +279,83 @@ export function createAttempt(db: Database, a: { dropId: number; videoPath: stri
   })();
 }
 
-export function saveReview(db: Database, attemptId: number, review: { verdict: string }) {
-  const { drop_id } = db.query("update attempts set verdict = ?, review_json = ? where id = ? returning drop_id")
-    .get(review.verdict, JSON.stringify(review), attemptId) as { drop_id: number };
-  logEvent(db, drop_id, "reviewed", { attempt_id: attemptId, verdict: review.verdict });
+function writeReview(db: Database, attemptId: number, review: Review) {
+  return db.query("update attempts set verdict = ?, review_json = ?, score = ?, scores_json = ? where id = ? returning drop_id")
+    .get(review.verdict, JSON.stringify(review), review.score, review.scores && JSON.stringify(review.scores), attemptId) as { drop_id: number };
 }
 
-// Demo only: force the latest retry/error attempt on a drop to a pass.
+export function saveReview(db: Database, attemptId: number, review: Review) {
+  const { drop_id } = writeReview(db, attemptId, review);
+  logEvent(db, drop_id, "reviewed", { attempt_id: attemptId, verdict: review.verdict, score: review.score });
+}
+
+type AttemptRow = {
+  id: number; n: number; drop_id: number; verdict: Review["verdict"] | null; review_json: string | null; score: number | null;
+  scores_json: string | null; transcript: string; created_at: string; video_path: string;
+};
+
+function attemptRow(db: Database, id: number) {
+  const a = db.query("select * from attempts where id = ?").get(id) as AttemptRow | null;
+  if (!a) throw new ApiError(404, "NOT_FOUND", "No such attempt");
+  return a;
+}
+
+// 1-based position among the drop's pending takes by score (ties: earlier first); null unless pending.
+function rankOf(db: Database, a: AttemptRow) {
+  if (a.verdict !== "pending") return null;
+  const s = a.score ?? 0;
+  return (db.query("select count(*) c from attempts where drop_id = ? and verdict = 'pending' and (score > ? or (score = ? and id < ?))")
+    .get(a.drop_id, s, s, a.id) as { c: number }).c + 1;
+}
+
+function toAttempt(db: Database, a: AttemptRow) {
+  const r = a.review_json ? (JSON.parse(a.review_json) as Partial<Review>) : {};
+  return {
+    id: a.id, n: a.n, verdict: a.verdict, criteria: r.criteria ?? [], feedback: r.feedback ?? "",
+    suggested_caption: r.suggested_caption ?? null, score: a.score,
+    scores: a.scores_json ? (JSON.parse(a.scores_json) as Scores) : null, rank: rankOf(db, a),
+  };
+}
+export type Attempt = ReturnType<typeof toAttempt>;
+
+export const getAttempt = (db: Database, id: number) => toAttempt(db, attemptRow(db, id));
+
+export function attemptWithReservation(db: Database, id: number) {
+  const attempt = getAttempt(db, id);
+  const row = db.query(`${RESERVATION_SELECT} where r.attempt_id = ? order by r.id desc limit 1`).get(id) as ReservationRow | null;
+  return { attempt, reservation: row ? toReservation(row) : null };
+}
+
+// Demo only: force the latest pending/retry/error attempt on a drop to a pass.
 export function approveAttempt(db: Database, attemptId: number) {
   return db.transaction(() => {
-    const a = db.query("select id, n, drop_id, verdict from attempts where id = ?").get(attemptId) as { id: number; n: number; drop_id: number; verdict: string | null } | null;
-    if (!a) throw new ApiError(404, "NOT_FOUND", "No such attempt");
+    const a = attemptRow(db, attemptId);
     const latest = db.query("select max(id) m from attempts where drop_id = ?").get(a.drop_id) as { m: number };
-    if (latest.m !== a.id || (a.verdict !== "retry" && a.verdict !== "error"))
-      throw new ApiError(409, "BAD_STATE", "Only the latest retry or error attempt can be approved");
+    if (latest.m !== a.id || !["pending", "retry", "error"].includes(a.verdict ?? ""))
+      throw new ApiError(409, "BAD_STATE", "Only the latest pending, retry or error attempt can be approved");
     const drop = getDrop(db, a.drop_id)!;
-    const review = {
-      verdict: "pass" as const,
-      criteria: drop.rubric.map((c) => ({ id: c.id, result: "pass" as const, evidence: "Approved manually (demo)" })),
-      feedback: "Approved in demo mode.",
-      suggested_caption: null,
-    };
-    db.query("update attempts set verdict = 'pass', review_json = ? where id = ?").run(JSON.stringify(review), a.id);
+    writeReview(db, a.id, demoPassReview(drop));
     logEvent(db, a.drop_id, "demo_approved", { attempt_id: a.id, drop_id: a.drop_id });
-    return { drop, attempt: { id: a.id, n: a.n, ...review } };
+    return { drop, attempt: getAttempt(db, a.id) };
+  })();
+}
+
+export const DEFAULT_REJECT_NOTE = "Thanks for entering — the merchant didn't pick this take. Try another angle.";
+
+// Merchant decision on a pending take. Approve sets pass (the caller claims the hold); reject sets retry.
+export function decideAttempt(db: Database, dropId: number, attemptId: number, decision: "approve" | "reject", note: string) {
+  return db.transaction(() => {
+    const drop = getDrop(db, dropId);
+    if (!drop) throw new ApiError(404, "NOT_FOUND", "No such campaign");
+    const a = attemptRow(db, attemptId);
+    if (a.drop_id !== dropId || a.verdict !== "pending") throw new ApiError(409, "BAD_STATE", "Only a pending take on this campaign can be decided");
+    const review = JSON.parse(a.review_json!) as Review;
+    const decided: Review = decision === "approve"
+      ? { ...review, verdict: "pass" }
+      : { ...review, verdict: "retry", suggested_caption: null, feedback: note || DEFAULT_REJECT_NOTE };
+    writeReview(db, a.id, decided);
+    logEvent(db, dropId, decision === "approve" ? "take_approved" : "take_rejected", { attempt_id: a.id, drop_id: dropId });
+    return { drop, attempt: getAttempt(db, a.id) };
   })();
 }
 
@@ -358,14 +438,19 @@ export function listCampaigns(db: Database) {
 export function campaignDetail(db: Database, id: number) {
   const campaign = getDrop(db, id);
   if (!campaign) throw new ApiError(404, "NOT_FOUND", "No such campaign");
-  const attempts = db.query("select id, n, verdict, review_json, transcript, created_at, video_path from attempts where drop_id = ? order by id desc").all(id) as
-    { id: number; n: number; verdict: string | null; review_json: string | null; transcript: string; created_at: string; video_path: string }[];
-  const reviews = attempts.map((a) => ({
-    attempt_id: a.id, n: a.n, verdict: a.verdict, transcript: a.transcript, created_at: a.created_at,
-    feedback: a.review_json ? String(JSON.parse(a.review_json).feedback ?? "") : "",
-    video_url: `/uploads/${a.video_path}`,
-  }));
-  return { campaign, stats: dropStats(db, id), reviews, events: recentEvents(db, id) };
+  // Pending takes by score (ties: earlier first), then the rest newest first.
+  const rows = db.query(
+    `select * from attempts where drop_id = ? order by verdict = 'pending' desc,
+       case when verdict = 'pending' then -score end, case when verdict = 'pending' then id else -id end`,
+  ).all(id) as AttemptRow[];
+  const reviews = rows.map((row) => {
+    const a = toAttempt(db, row);
+    return {
+      attempt_id: a.id, n: a.n, verdict: a.verdict, transcript: row.transcript, created_at: row.created_at,
+      feedback: a.feedback, video_url: `/uploads/${row.video_path}`, score: a.score, scores: a.scores, rank: a.rank,
+    };
+  });
+  return { campaign: { ...campaign, review: reviewSettings(db, id) }, stats: dropStats(db, id), reviews, events: recentEvents(db, id) };
 }
 
 const campaignParams = (c: CampaignInput) => [
