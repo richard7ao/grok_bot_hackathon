@@ -43,6 +43,20 @@ async function mock(req: Request, url: URL): Promise<Response> {
     attemptCount = 0;
     return Response.json({ ok: true });
   }
+  if (m === "GET" && p === "/api/campaigns") return Response.json(await fixture("campaigns.json"));
+  if (m === "POST" && p === "/api/campaigns/draft") {
+    await Bun.sleep(1200);
+    return Response.json(await fixture("campaign-draft.json"));
+  }
+  if (m === "POST" && p === "/api/campaigns") {
+    const body = await req.json();
+    return Response.json({ ...body, id: 99, available: body.allocation_total }, { status: 201 });
+  }
+  if (/^\/api\/campaigns\/\d+$/.test(p)) {
+    const detail = await fixture("campaign-detail.json");
+    if (m === "GET") return Response.json(detail);
+    if (m === "PATCH") return Response.json({ ...detail.campaign, ...(await req.json()) });
+  }
   return Response.json({ error: "NOT_FOUND", message: `mock has no ${m} ${p}` }, { status: 404 });
 }
 
