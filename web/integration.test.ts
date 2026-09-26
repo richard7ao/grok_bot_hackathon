@@ -178,3 +178,15 @@ test("result screen has a demo approve button wired to the approve route", async
   expect(body.reservation.status).toBe("held");
   expect(Date.parse(body.reservation.expires_at)).toBeGreaterThan(Date.now());
 });
+
+test("map clusters drops and has All drops / Near me controls", async () => {
+  const js = await (await fetch(`${base}/app.js`)).text();
+  expect(js).toContain("cluster: true");
+  expect(js).toContain("getClusterExpansionZoom");
+  expect(js).toContain("querySourceFeatures");
+  const html = await (await fetch(`${base}/`)).text();
+  for (const id of ["map-all", "map-me"]) {
+    expect(html).toContain(`id="${id}"`);
+    expect(js).toContain(`$("#${id}")`);
+  }
+});

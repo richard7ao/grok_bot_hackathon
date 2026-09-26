@@ -87,12 +87,28 @@ a { color: var(--ink); font-weight: 600; }
 .drop-card small { font-size: 12px; color: var(--muted); }
 .drop-card small.live { color: var(--cobalt); font-weight: 600; }
 .drop-card.preview .tile img { filter: grayscale(1); opacity: .6; }
-.pin { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: 0; background: none; cursor: pointer; }
-.pin img { width: 46px; height: 46px; border-radius: 50%; background: #fff; object-fit: cover; border: 3px solid #fff; box-shadow: 0 4px 12px -2px rgba(0,0,0,.35); }
-.pin span { padding: 2px 7px; border-radius: 999px; background: var(--ink); color: #fff; font: 700 11px Inter, sans-serif; }
-.pin.live img { box-shadow: 0 0 0 2px var(--cobalt), 0 4px 12px -2px rgba(0,0,0,.35); }
-.pin.preview img { filter: grayscale(1); opacity: .75; width: 38px; height: 38px; }
-.pin.preview span { background: #9A9A9A; }
+.pin { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0; border: 0; background: none; cursor: pointer; }
+.pin img, .pin span, .cluster .stack { transition: transform .18s cubic-bezier(.2,.7,.3,1); }
+.pin:hover img, .pin:hover span, .cluster:hover .stack { transform: translateY(-3px); }
+.pin img { width: 40px; height: 40px; box-sizing: border-box; border-radius: 50%; background: #fff; object-fit: cover; border: 2.5px solid #fff; box-shadow: 0 3px 10px -2px rgba(0,0,0,.3); }
+.pin span { padding: 1px 6px; border-radius: 999px; background: var(--ink); color: #fff; font: 700 10px/1.4 Inter, sans-serif; }
+.pin.live img { box-shadow: 0 0 0 2px var(--cobalt), 0 3px 10px -2px rgba(0,0,0,.3); }
+.pin.preview img { filter: grayscale(1); opacity: .7; width: 30px; height: 30px; border-width: 2px; }
+.pin.preview span { background: #9A9A9A; font-size: 9px; }
+.far .pin span { display: none; }
+.cluster { padding: 0; border: 0; background: none; cursor: pointer; }
+.cluster .stack { display: flex; align-items: center; padding: 3px; border-radius: 999px; background: #fff; box-shadow: 0 3px 12px -3px rgba(0,0,0,.35); }
+.cluster.live .stack { box-shadow: 0 0 0 2px var(--cobalt), 0 3px 12px -3px rgba(0,0,0,.35); }
+.cluster img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; background: #fff; box-sizing: border-box; }
+.cluster img + img { margin-left: -10px; }
+.cluster b { padding: 0 7px 0 5px; font: 700 12px Inter, sans-serif; color: var(--ink); }
+.maplibregl-marker.you { z-index: 3; }
+.far .you .ava, .far .you img { width: 34px; height: 34px; }
+.far .you img { border-width: 2px; }
+.far .you span { padding: 1px 6px; font-size: 9.5px; }
+.map-ctrl { position: absolute; top: 14px; right: 14px; z-index: 4; display: flex; flex-direction: column; gap: 10px; }
+.map-ctrl button { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 4px 14px -4px rgba(0,0,0,.35); cursor: pointer; }
+.map-ctrl svg { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .you { display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
 .you .ava { position: relative; width: 48px; height: 48px; }
 .you .ava::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: rgba(27,92,255,.35); animation: ping 2s ease-out infinite; }
@@ -337,14 +353,11 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; background: tra
 @media (hover: hover) { .drop-card:hover { transform: translateY(-3px); } .drop-card:hover .tile { box-shadow: 0 12px 20px -14px rgba(0,0,0,.45); } }
 .drop-card:active { transform: scale(.96); transition-duration: .12s; }
 
-/* Ripple on live map pins; softer pulse on the user dot. */
+/* Subtle ripple on unclustered live map pins (the user dot pings via .ava::before). */
 /* No position here: MapLibre positions markers absolutely; overriding it makes pins drift. */
 .pin { isolation: isolate; }
-.pin.live::before, .pin.live::after { content: ""; position: absolute; top: 0; left: 50%; z-index: -1; width: 46px; height: 46px; margin-left: -23px; border-radius: 50%; border: 2px solid var(--cobalt); opacity: 0; animation: ripple 2.6s cubic-bezier(.2,.6,.4,1) infinite; pointer-events: none; }
-.pin.live::after { animation-delay: 1.3s; }
-@keyframes ripple { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(2.3); opacity: 0; } }
-.you { animation: pulse 2.8s ease-out infinite; }
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(27,92,255,.35); } 70%, 100% { box-shadow: 0 0 0 12px rgba(27,92,255,0); } }
+.pin.live::before { content: ""; position: absolute; top: 0; left: 50%; z-index: -1; width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; border: 1.5px solid var(--cobalt); opacity: 0; animation: ripple 2.8s cubic-bezier(.2,.6,.4,1) infinite; pointer-events: none; }
+@keyframes ripple { 0% { transform: scale(1); opacity: .35; } 100% { transform: scale(1.6); opacity: 0; } }
 
 /* Marquee: thin ticker across the top of the "Drops near you" sheet. */
 .marquee { overflow: hidden; margin: -2px 0 12px; padding: 7px 0; border-block: 1px solid var(--line); -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
@@ -363,7 +376,7 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; background: tra
 @keyframes twinkle { 0%, 100% { transform: scale(.3) rotate(0); opacity: 0; } 50% { transform: scale(1) rotate(45deg); opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .shine::after, .drop-card.live .tile::after, #s-drop.live .hero::after, .pin.live::before, .pin.live::after, .you, .marquee-track, .spark, .spinner, .typing i { animation: none; }
+  .shine::after, .drop-card.live .tile::after, #s-drop.live .hero::after, .pin.live::before, .you, .marquee-track, .spark, .spinner, .typing i { animation: none; }
   .spark { opacity: .8; transform: none; }
-  .cta, .drop-card { transition: none; }
+  .cta, .drop-card, .pin img, .pin span, .cluster .stack { transition: none; }
 }
