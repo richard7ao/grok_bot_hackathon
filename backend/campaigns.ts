@@ -1,6 +1,6 @@
 import { ApiError, type CampaignInput } from "./db";
 
-const IMAGES = ["/img/birkin.svg", "/img/baguette.svg", "/img/flats.svg", "/img/jacket.svg", "/img/shell.svg", "/img/sneaker.svg", "/img/shirt.svg"];
+const IMAGES = ["/img/birkin.svg", "/img/baguette.svg", "/img/flats.svg", "/img/jacket.svg", "/img/shell.svg", "/img/sneaker.svg", "/img/shirt.svg", "/img/photos/birkin.jpg", "/img/photos/arcteryx.jpg", "/img/photos/carhartt.jpg", "/img/photos/xt6.jpg", "/img/photos/stoneisland.jpg", "/img/photos/football.jpg", "/img/photos/baguette.jpg", "/img/photos/flats.jpg"];
 const STATUSES = ["live", "preview", "draft", "ended"];
 const SLUG = /^[a-z0-9]+(?:[_-][a-z0-9]+)*$/;
 
