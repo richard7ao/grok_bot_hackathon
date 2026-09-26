@@ -1,3 +1,4 @@
 .env
 dropquest.db
 uploads/
+.playwright-mcp/
