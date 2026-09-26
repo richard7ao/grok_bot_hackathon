@@ -1,7 +1,7 @@
 // DropQuest customer app. Vanilla JS; screens are <section class="screen"> toggled by show().
 const $ = (sel) => document.querySelector(sel);
 const st = { drops: [], drop: null, pos: null, res: null, clip: null, timer: null, attemptsLeft: null, durationMs: 0 };
-const pounds = (pence) => `£${(pence / 100).toFixed(2)}`;
+const pounds = (pence) => (pence / 100).toLocaleString("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: pence % 100 ? 2 : 0 });
 
 // Quest step per screen, drawn as the stories-style bars under the header.
 const STEP = { "s-map": 0, "s-drop": 1, "s-record": 2, "s-preview": 2, "s-review": 3, "s-result": 3, "s-share": 4, "s-buy": 5, "s-done": 6 };
@@ -50,7 +50,8 @@ debugBox.onchange = () => {
 
 // Map: soft CartoDB Positron tiles, sage zone, deep-matcha pin.
 const map = L.map("map", { zoomControl: false }).setView([51.5237, -0.0785], 16);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO" }).addTo(map);
+// OSM tiles, softened to the oat palette in CSS (.leaflet-tile-pane). CARTO now needs an API key.
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
 let youDot = null;
 
 function addPin(drop) {
