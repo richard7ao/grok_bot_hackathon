@@ -1,0 +1,27 @@
+{
+  "prompt": "Show your outfit in a 15-second video, then tell us how you'd style the Classic Flap day-to-night. Mention one detail from the drop card.",
+  "facts": [
+    "Black caviar leather",
+    "Gold-tone CC turn-lock",
+    "Medium size, 25.5 cm",
+    "Authenticated by Fleek"
+  ],
+  "rubric": [
+    {
+      "id": "outfit",
+      "label": "Show or describe your current outfit"
+    },
+    {
+      "id": "styling_idea",
+      "label": "Say how you would style the bag"
+    },
+    {
+      "id": "product_detail",
+      "label": "Mention one detail from the drop card"
+    },
+    {
+      "id": "suitable",
+      "label": "Keep it relevant and suitable"
+    }
+  ]
+}

@@ -1,6 +1,5 @@
 {
-  "server_time": "2026-09-26T11:00:00.000Z",
-  "drops": [
+  "campaigns": [
     {
       "id": 1,
       "title": "Pre-loved Hermès Birkin 25 — Gold Togo",
@@ -41,7 +40,14 @@
       "brand": "Fleek Luxe",
       "description": "Three authenticated pre-loved Hermès Birkin 25s in Gold Togo, sourced from verified Fleek sellers. Early access for creators who style it best.",
       "public_launch_at": "2026-10-03T10:00:00.000Z",
-      "hold_minutes": 10
+      "hold_minutes": 10,
+      "stats": {
+        "attempts": 2,
+        "passed": 1,
+        "held": 1,
+        "posted": 1,
+        "sold": 1
+      }
     },
     {
       "id": 2,
@@ -60,7 +66,14 @@
       "brand": "Fleek Archive",
       "description": "A 1999 Fendi Baguette in the original monogram canvas.",
       "public_launch_at": "2026-10-10T10:00:00.000Z",
-      "hold_minutes": 10
+      "hold_minutes": 10,
+      "stats": {
+        "attempts": 0,
+        "passed": 0,
+        "held": 0,
+        "posted": 0,
+        "sold": 0
+      }
     },
     {
       "id": 3,
@@ -79,7 +92,63 @@
       "brand": "Fleek Archive",
       "description": "Blush satin Miu Miu ballet flats, barely worn.",
       "public_launch_at": "2026-10-17T10:00:00.000Z",
-      "hold_minutes": 10
+      "hold_minutes": 10,
+      "stats": {
+        "attempts": 0,
+        "passed": 0,
+        "held": 0,
+        "posted": 0,
+        "sold": 0
+      }
+    },
+    {
+      "id": 4,
+      "title": "Chanel Classic Flap — Black Caviar",
+      "status": "draft",
+      "price_pence": 920000,
+      "image_url": "/img/baguette.svg",
+      "lat": 51.5237,
+      "lng": -0.0785,
+      "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Birkin. Include one detail about the bag from the drop card.",
+      "facts": [
+        "Gold Togo leather",
+        "Gold-plated hardware",
+        "25 cm, the most wanted size",
+        "Authenticated by Fleek",
+        "Box and dust bag included"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the bag"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 1,
+      "available": 1,
+      "brand": "Fleek Luxe",
+      "description": "Three authenticated pre-loved Hermès Birkin 25s in Gold Togo, sourced from verified Fleek sellers. Early access for creators who style it best.",
+      "public_launch_at": "2026-10-03T10:00:00.000Z",
+      "hold_minutes": 10,
+      "stats": {
+        "attempts": 0,
+        "passed": 0,
+        "held": 0,
+        "posted": 0,
+        "sold": 0
+      }
     }
   ]
 }
