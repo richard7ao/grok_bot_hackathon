@@ -1,15 +1,15 @@
 // DropQuest customer app. Vanilla JS; screens are <section class="screen"> toggled by show().
 const $ = (sel) => document.querySelector(sel);
-const st = { drops: [], drop: null, pos: null, res: null, clip: null, timer: null, attemptsLeft: null, durationMs: 0 };
+const st = { drops: [], drop: null, pos: null, res: null, clip: null, timer: null, attemptsLeft: null, durationMs: 0, pending: null, waitTimer: null };
 const pounds = (pence) => (pence / 100).toLocaleString("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: pence % 100 ? 2 : 0 });
 
 // Quest step per screen, drawn as the stories-style bars under the header.
-const STEP = { "s-map": 0, "s-drop": 1, "s-record": 2, "s-preview": 2, "s-review": 3, "s-result": 3, "s-share": 4, "s-buy": 5, "s-done": 6 };
+const STEP = { "s-map": 0, "s-drop": 1, "s-record": 2, "s-preview": 2, "s-review": 3, "s-wait": 3, "s-result": 3, "s-share": 4, "s-buy": 5, "s-done": 6 };
 
 function show(id) {
   document.querySelectorAll(".screen").forEach((s) => (s.hidden = s.id !== id));
   document.querySelectorAll("#stories i").forEach((bar, i) => (bar.className = i < STEP[id] ? "on" : i === STEP[id] ? "half" : ""));
-  if (id === "s-map") setTimeout(() => map.invalidateSize(), 0);
+  if (id === "s-map") setTimeout(() => map.resize(), 0);
 }
 
 function toast(msg) {
@@ -38,7 +38,11 @@ function distanceM(a, b) {
   return 2 * 6371000 * Math.asin(Math.sqrt(h));
 }
 
-const li = (text, className = "") => Object.assign(document.createElement("li"), { textContent: text, className });
+const el = (tag, className = "", text = "") => Object.assign(document.createElement(tag), { className, textContent: text });
+const li = (text, className = "") => el("li", className, text);
+const img = (src) => Object.assign(document.createElement("img"), { src, alt: "" });
+const fmtDist = (m) => (m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`);
+const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 // "at venue (demo)" toggle, remembered per browser.
 const debugBox = $("#debug");
@@ -48,18 +52,56 @@ debugBox.onchange = () => {
   if (st.drop) renderDrop();
 };
 
-// Map: soft CartoDB Positron tiles, sage zone, deep-matcha pin.
-const map = L.map("map", { zoomControl: false }).setView([51.5237, -0.0785], 16);
-// OSM tiles, softened to the oat palette in CSS (.leaflet-tile-pane). CARTO now needs an API key.
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+// Map: MapLibre GL with the keyless OpenFreeMap Positron style.
+const COBALT = "#1B5CFF";
+const map = new maplibregl.Map({ container: "map", style: "https://tiles.openfreemap.org/styles/positron", center: [-0.1, 51.515], zoom: 12, attributionControl: { compact: true } });
 let youDot = null;
 
-function addPin(drop) {
-  const html = document.createElement("span");
-  html.append(Object.assign(document.createElement("img"), { src: drop.image_url, alt: "" }));
-  const icon = L.divIcon({ className: `pin ${drop.status}`, html, iconSize: [48, 48], iconAnchor: [24, 58] });
-  L.marker([drop.lat, drop.lng], { icon, title: drop.title }).addTo(map).on("click", () => openDrop(drop.id));
-  if (drop.status === "live") L.circle([drop.lat, drop.lng], { radius: drop.radius_m, color: "#7FA66A", weight: 1, dashArray: "3 4", fillColor: "#7FA66A", fillOpacity: 0.14 }).addTo(map);
+// Drop zone as a 64-point polygon (flat-earth approximation, fine at 150 m).
+function zoneRing(d, steps = 64) {
+  const dLat = d.radius_m / 111320, dLng = dLat / Math.cos((d.lat * Math.PI) / 180);
+  return Array.from({ length: steps + 1 }, (_, i) => [d.lng + dLng * Math.cos((i / steps) * 2 * Math.PI), d.lat + dLat * Math.sin((i / steps) * 2 * Math.PI)]);
+}
+
+function pinEl(drop) {
+  const b = el("button", `pin ${drop.status}`);
+  b.setAttribute("aria-label", drop.title);
+  b.append(img(drop.image_url), el("span", "", drop.status === "live" ? pounds(drop.price_pence) : "soon"));
+  b.onclick = () => openDrop(drop.id);
+  return b;
+}
+
+function drawDrops() {
+  st.drops.forEach((d) => new maplibregl.Marker({ element: pinEl(d), anchor: "bottom" }).setLngLat([d.lng, d.lat]).addTo(map));
+  const features = st.drops.filter((d) => d.status === "live").map((d) => ({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [zoneRing(d)] } }));
+  const addZones = () => {
+    map.addSource("zones", { type: "geojson", data: { type: "FeatureCollection", features } });
+    map.addLayer({ id: "zones", type: "fill", source: "zones", paint: { "fill-color": COBALT, "fill-opacity": 0.12 } });
+    map.addLayer({ id: "zones-edge", type: "line", source: "zones", paint: { "line-color": COBALT, "line-width": 1.5, "line-dasharray": [2, 2] } });
+  };
+  if (map.isStyleLoaded()) addZones();
+  else map.once("load", addZones);
+  const bounds = new maplibregl.LngLatBounds();
+  st.drops.forEach((d) => bounds.extend([d.lng, d.lat]));
+  if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: { top: 60, bottom: 260, left: 40, right: 40 }, maxZoom: 15, duration: 0 });
+  renderNear();
+}
+
+// "Drops near you" row: live first (nearest first when located), then coming soon.
+function renderNear() {
+  const dist = (d) => (st.pos ? distanceM(st.pos, d) : 0);
+  const sorted = [...st.drops].sort((a, b) => (a.status === "live" ? 0 : 1) - (b.status === "live" ? 0 : 1) || dist(a) - dist(b));
+  $("#near").replaceChildren(
+    ...sorted.map((d) => {
+      const b = el("button", `drop-card ${d.status}`);
+      const tile = el("span", "tile");
+      tile.append(img(d.image_url));
+      const meta = d.status === "live" ? (st.pos ? fmtDist(dist(d)) : "Live now") : "Soon";
+      b.append(tile, el("b", "", pounds(d.price_pence)), el("span", "brand", d.brand ?? ""), el("small", d.status, meta));
+      b.onclick = () => openDrop(d.id);
+      return b;
+    }),
+  );
 }
 
 async function refreshDrops() {
@@ -74,28 +116,35 @@ async function boot() {
     $("#loc-status").textContent = `Could not load drops: ${e.message}`;
     return;
   }
-  st.drops.forEach(addPin);
-  const live = st.drops.find((d) => d.status === "live");
-  if (!live) return;
-  map.setView([live.lat, live.lng], 16);
-  // Reload recovery: jump back into an active hold/purchase window.
-  const s = await api(`/api/drops/${live.id}/state`).catch(() => null);
-  if (s?.reservation && ["held", "posted"].includes(s.reservation.status)) {
-    st.drop = live;
-    st.attemptsLeft = s.max_attempts - s.attempts_used;
-    resume(s.reservation);
+  drawDrops();
+  const live = st.drops.filter((d) => d.status === "live");
+  // Reload during the review wait: go back to s-wait with the remaining time.
+  const pending = loadPending();
+  const pendingDrop = st.drops.find((d) => d.id === pending?.drop_id);
+  if (pending?.body?.attempt && pendingDrop) {
+    st.drop = pendingDrop;
+    st.attemptsLeft = pending.attempts_left ?? null;
+    return enterWait(pending);
   }
+  // Reload recovery: jump back into an active hold/purchase window.
+  const states = await Promise.all(live.map((d) => api(`/api/drops/${d.id}/state`).catch(() => null)));
+  const i = states.findIndex((s) => s?.reservation && ["held", "posted"].includes(s.reservation.status));
+  if (i < 0) return;
+  st.drop = live[i];
+  st.attemptsLeft = states[i].max_attempts - states[i].attempts_used;
+  resume(states[i].reservation);
 }
 
 navigator.geolocation?.watchPosition(
   (p) => {
     st.pos = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy };
-    if (youDot) youDot.setLatLng([st.pos.lat, st.pos.lng]);
-    else youDot = L.circleMarker([st.pos.lat, st.pos.lng], { radius: 7, color: "#fff", weight: 3, fillColor: "#4A78C2", fillOpacity: 1 }).addTo(map);
-    $("#loc-status").textContent = `You are here (±${Math.round(st.pos.acc)} m). Tap a drop.`;
+    youDot ??= new maplibregl.Marker({ element: el("div", "you") }).setLngLat([st.pos.lng, st.pos.lat]).addTo(map);
+    youDot.setLngLat([st.pos.lng, st.pos.lat]);
+    $("#loc-status").textContent = `Located (±${Math.round(st.pos.acc)} m). Tap a drop to see it.`;
+    renderNear();
     if (st.drop && !$("#s-drop").hidden) renderDrop();
   },
-  () => ($("#loc-status").textContent = "Location is off. Tick “at venue (demo)” to try the drop."),
+  () => ($("#loc-status").textContent = "Location is off. Tick “at venue (demo)” to try a drop."),
   { enableHighAccuracy: true, maximumAge: 60000 },
 );
 
@@ -134,7 +183,9 @@ function lockReason() {
 function renderDrop() {
   const d = st.drop;
   $("#d-img").src = d.image_url;
+  $("#d-brand").textContent = `${d.brand ?? "Fleek"} · ${d.status === "live" ? "Live drop" : `Launches ${fmtDate(d.public_launch_at)}`}`;
   $("#d-title").textContent = d.title;
+  $("#d-desc").textContent = d.description ?? "";
   $("#d-price").textContent = pounds(d.price_pence);
   $("#d-stock").textContent = d.status === "live" ? `${d.available} of ${d.allocation_total} left` : "Coming soon";
   $("#d-prompt").textContent = d.prompt;
@@ -229,8 +280,9 @@ function grabFrame() {
 async function finishRecording() {
   await new Promise((r) => setTimeout(r, 800)); // let the last speech result arrive
   const type = recorder.mimeType || "video/webm";
-  st.clip = { blob: new Blob(chunks, { type }), ext: type.includes("mp4") ? "mp4" : "webm", frames: [...frames], transcript: transcript.trim(), durationMs: st.durationMs };
-  $("#p-video").src = URL.createObjectURL(st.clip.blob);
+  const blob = new Blob(chunks, { type });
+  st.clip = { blob, url: URL.createObjectURL(blob), ext: type.includes("mp4") ? "mp4" : "webm", frames: [...frames], transcript: transcript.trim(), durationMs: st.durationMs };
+  $("#p-video").src = st.clip.url;
   $("#p-transcript").textContent = st.clip.transcript || "(nothing heard, so speak up and retake)";
   show("s-preview");
 }
@@ -254,15 +306,69 @@ $("#p-submit").onclick = async () => {
   }
   show("s-review");
   $("#rv-stage").textContent = "Uploading your clip…";
-  const stage = setTimeout(() => ($("#rv-stage").textContent = "Grok is reviewing your styling idea…"), 1200);
+  const stage = setTimeout(() => ($("#rv-stage").textContent = "Sending it to Grok…"), 1200);
+  let body;
   try {
-    showResult(await api(`/api/drops/${st.drop.id}/attempts`, { method: "POST", body: f }));
+    body = await api(`/api/drops/${st.drop.id}/attempts`, { method: "POST", body: f });
   } catch (e) {
-    showResult(null, e);
+    return showResult(null, e);
   } finally {
     clearTimeout(stage);
   }
+  if (body.attempt.verdict === "error") return showResult(body); // nothing to wait for
+  st.attemptsLeft = Math.max(0, (st.attemptsLeft ?? 3) - 1);
+  enterWait({ body, reveal_at: Date.now() + REVIEW_WAIT_MS, drop_id: st.drop.id, attempts_left: st.attemptsLeft });
 };
+
+// Review wait. The verdict is already in `body`; only its reveal is delayed (see the comment on #s-wait).
+const REVIEW_WAIT_MS = 45000;
+const WAIT_STAGES = ["Watching your clip…", "Reading what you said…", "Checking the drop card…", "Writing your notes…"];
+
+function savePending(p) {
+  try {
+    if (p) localStorage.setItem("dq_pending", JSON.stringify(p));
+    else localStorage.removeItem("dq_pending");
+  } catch {}
+}
+function loadPending() {
+  try {
+    return JSON.parse(localStorage.getItem("dq_pending"));
+  } catch {
+    return null;
+  }
+}
+
+function enterWait(p) {
+  st.pending = p;
+  savePending(p);
+  const frame = st.clip?.frames[0];
+  $("#w-thumb").src = frame ? URL.createObjectURL(frame) : st.drop.image_url;
+  $("#w-len").textContent = st.clip ? `▶ my take · 0:${String(Math.round(st.clip.durationMs / 1000)).padStart(2, "0")}` : "▶ my take";
+  $("#w-held").hidden = !p.body.reservation;
+  show("s-wait");
+  clearInterval(st.waitTimer);
+  const draw = () => {
+    const left = p.reveal_at - Date.now();
+    if (left <= 0) return reveal();
+    const done = Math.max(0, 1 - left / REVIEW_WAIT_MS);
+    $("#w-bar").style.width = `${Math.max(3, done * 100)}%`;
+    $("#w-stage").textContent = WAIT_STAGES[Math.min(WAIT_STAGES.length - 1, Math.floor(done * WAIT_STAGES.length))];
+    const n = Math.ceil(Math.min(1, left / REVIEW_WAIT_MS) * 5);
+    $("#w-queue").textContent = n > 1 ? `You're #${n} in the queue` : "You're next";
+  };
+  st.waitTimer = setInterval(draw, 500);
+  draw();
+}
+
+function reveal() {
+  clearInterval(st.waitTimer);
+  const p = st.pending;
+  if (!p) return;
+  st.pending = null;
+  savePending(null);
+  showResult(p.body);
+}
+$("#w-skip").onclick = reveal;
 
 const ruleLabel = (id) => st.drop.rubric.find((c) => c.id === id)?.label ?? id;
 const NO_RETRY = ["ATTEMPTS_EXHAUSTED", "DROP_NOT_LIVE", "ALREADY_RESERVED"];
@@ -271,10 +377,10 @@ function showResult(body, err) {
   const a = body?.attempt;
   if (a?.verdict === "pass" && body.reservation) {
     st.res = body.reservation;
-    toast("Qualified! Your item is held.");
+    toast("Passed. Your item is held.");
     return openShare();
   }
-  if (a && a.verdict !== "error") st.attemptsLeft = Math.max(0, (st.attemptsLeft ?? 3) - 1);
+  $("#s-result").classList.remove("expired");
   $("#res-title").textContent = err ? "Couldn't submit" : a.verdict === "pass" ? "Qualified, but the allocation is full" : a.verdict === "error" ? "Grok is unavailable" : "Almost there";
   $("#res-feedback").textContent = err ? err.message : body.error === "ALREADY_RESERVED" ? "You already hold this drop." : a.feedback;
   $("#res-criteria").replaceChildren(...(a?.criteria ?? []).map((c) => li(`${ruleLabel(c.id)}: ${c.evidence}`, c.result)));
@@ -302,23 +408,41 @@ function resume(reservation) {
 
 function openShare() {
   const r = st.res;
-  $("#sh-download").href = r.video_url;
-  $("#sh-download").download = `dropquest-clip.${r.video_url.split(".").pop()}`;
+  const src = st.clip?.url ?? r.video_url;
+  $("#sh-download").href = src;
+  $("#sh-download").download = `dropquest-clip.${st.clip?.ext ?? r.video_url.split(".").pop()}`;
+  $("#sh-reel").src = src;
   $("#sh-caption").value = r.caption;
-  startTimer("#sh-timer");
+  syncCaption();
+  document.querySelectorAll("#sh-steps li").forEach((step) => step.classList.remove("done"));
+  startTimer("#sh-timer", (st.drop.hold_minutes ?? 10) * 60000, "#sh-ring");
   show("s-share");
 }
 
-$("#sh-copy").onclick = async () => {
+const tickStep = (id) => $(id).classList.add("done");
+function syncCaption() {
+  const c = $("#sh-caption").value;
+  $("#sh-count").textContent = `${c.length} / 2200`;
+  $("#sh-reel-cap").textContent = c.length > 70 ? `${c.slice(0, 70)}…` : c;
+}
+$("#sh-caption").oninput = syncCaption;
+$("#sh-download").addEventListener("click", () => tickStep("#sh-step-dl"));
+$("#sh-ig").addEventListener("click", () => tickStep("#sh-step-ig"));
+
+async function copyCaption() {
   const caption = withSuffix($("#sh-caption").value);
   $("#sh-caption").value = caption;
+  syncCaption();
+  tickStep("#sh-step-copy");
   try {
     await navigator.clipboard.writeText(caption);
     toast("Caption copied");
   } catch {
     toast("Select the caption and copy it");
   }
-};
+}
+$("#sh-copy").onclick = copyCaption;
+$("#sh-copy-step").onclick = copyCaption;
 
 $("#sh-posted").onclick = async () => {
   try {
@@ -330,8 +454,15 @@ $("#sh-posted").onclick = async () => {
 };
 
 function openBuy() {
-  $("#b-title").textContent = st.drop.title;
-  $("#b-price").textContent = pounds(st.res.price_pence);
+  const d = st.drop, price = pounds(st.res.price_pence);
+  $("#b-img").src = d.image_url;
+  $("#b-brand").textContent = d.brand ?? "";
+  $("#b-title").textContent = d.title;
+  $("#b-price").textContent = price;
+  $("#b-launch").textContent = d.public_launch_at ? `Early access · public launch ${fmtDate(d.public_launch_at)}` : "Early access";
+  $("#b-sum-item").textContent = d.title;
+  $("#b-sum-price").textContent = price;
+  $("#b-total").textContent = price;
   startTimer("#b-timer");
   show("s-buy");
 }
@@ -350,9 +481,38 @@ $("#b-buy").onclick = async () => {
 
 function openDone() {
   clearInterval(st.timer);
+  $("#dn-img").src = st.drop.image_url;
   $("#dn-title").textContent = st.drop.title;
+  $("#dn-order").textContent = `DQ-${String(st.res.id).padStart(5, "0")}`;
+  drawPickupCode(st.res.id);
   show("s-done");
 }
+
+// QR-style placeholder: three finder squares plus a pattern seeded by the reservation id. Not scannable.
+function drawPickupCode(seed) {
+  let d = "";
+  for (let y = 0; y < 21; y++)
+    for (let x = 0; x < 21; x++) {
+      const finder = (x < 8 && (y < 8 || y > 12)) || (x > 12 && y < 8);
+      const r = Math.max(Math.abs(x - (x < 8 ? 3 : 17)), Math.abs(y - (y < 8 ? 3 : 17)));
+      const on = finder ? r === 3 || r <= 1 : (Math.imul(x * 131 + y * 7919 + seed * 104729, 2654435761) >>> 16) & 1;
+      if (on) d += `M${x} ${y}h1v1h-1z`;
+    }
+  $("#dn-qr path").setAttribute("d", d);
+}
+
+$("#dn-share").onclick = async () => {
+  const text = `Got early access to the ${st.drop.title} on Fleek DropQuest. ${SUFFIX}`;
+  try {
+    if (navigator.share) await navigator.share({ title: "My DropQuest collectible", text });
+    else {
+      await navigator.clipboard.writeText(text);
+      toast("Copied to share");
+    }
+  } catch (e) {
+    if (e.name !== "AbortError") toast("Sharing isn't available here");
+  }
+};
 
 function onReservationError(e) {
   if (e.code === "HOLD_EXPIRED") return showExpired();
@@ -361,22 +521,37 @@ function onReservationError(e) {
 
 function showExpired() {
   clearInterval(st.timer);
-  $("#res-title").textContent = "Hold expired";
-  $("#res-feedback").textContent = "The item went back into the drop.";
-  $("#res-criteria").replaceChildren();
+  $("#s-result").classList.add("expired");
+  $("#ex-line").textContent = `The ${st.drop.title.split(" — ")[0].replace(/^(Pre-loved|Vintage) /, "")} went back into the drop.`;
+  $("#ex-others").replaceChildren(
+    ...st.drops
+      .filter((d) => d.status === "preview")
+      .map((d) => {
+        const b = el("button", "other");
+        const text = el("span");
+        text.append(el("b", "", d.title), el("small", "", `${d.brand ?? ""} · coming soon`));
+        b.append(img(d.image_url), text);
+        b.onclick = () => openDrop(d.id);
+        const item = el("li");
+        item.append(b);
+        return item;
+      }),
+  );
   $("#res-retry").hidden = true;
   $("#res-map").hidden = false;
   show("s-result");
 }
 
 // Countdown from the server's expires_at, so navigation or reload never resets it.
-function startTimer(sel) {
+// With a ring, its arc (pathLength 100) shows the share of totalMs left.
+function startTimer(sel, totalMs, ring) {
   clearInterval(st.timer);
   const draw = () => {
     const ms = Date.parse(st.res.expires_at) - Date.now();
     if (ms <= 0) return showExpired();
     const s = Math.ceil(ms / 1000);
     $(sel).textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    if (ring) $(ring).style.strokeDashoffset = String(100 - Math.min(100, (ms / totalMs) * 100));
   };
   draw();
   st.timer = setInterval(draw, 1000);
