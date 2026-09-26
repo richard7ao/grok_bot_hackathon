@@ -76,6 +76,7 @@ async function postAttempt(req: Req) {
 }
 
 const server = Bun.serve({
+  hostname: "127.0.0.1",
   port: Number(process.env.PORT ?? 3000),
   maxRequestBodySize: 60 * 1024 * 1024,
   routes: {
@@ -103,4 +104,4 @@ const server = Bun.serve({
   },
   fetch: () => Response.json({ error: "NOT_FOUND", message: "No such route" }, { status: 404 }),
 });
-console.log(`backend on http://localhost:${server.port} (review: ${process.env.REVIEW_MODE ?? "xai"})`);
+console.log(`backend on http://localhost:${server.port} (review: ${process.env.REVIEW_MODE === "fake" ? "fake" : "openai"})`);

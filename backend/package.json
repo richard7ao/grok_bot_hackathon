@@ -1,2 +1,2 @@
 { "name": "dropquest-backend", "private": true, "type": "module",
-  "scripts": { "dev": "bun --watch server.ts", "test": "bun test" } }
+  "scripts": { "dev": "bun --env-file=../.env --env-file=.env --watch server.ts", "smoke": "bun --env-file=../.env --env-file=.env smoke-review.ts", "test": "bun test" } }

@@ -170,8 +170,8 @@ test("expired hold frees stock and blocks posting", async () => {
   expect(drops.drops[0].available).toBe(3);
 });
 
-test("Grok failure is an error verdict that does not count as an attempt", async () => {
-  const base = await start(3903, { REVIEW_MODE: "xai", XAI_URL: "http://localhost:1/unreachable", XAI_API_KEY: "test" });
+test("review failure is an error verdict that does not count as an attempt", async () => {
+  const base = await start(3903, { REVIEW_MODE: "openai", OPENAI_URL: "http://localhost:1/unreachable", OPENAI_API_KEY: "test" });
   for (let i = 0; i < 4; i++) {
     const body = await (await post(base, "/api/drops/1/attempts", entry(PASS))).json();
     expect(body.attempt.verdict).toBe("error");
