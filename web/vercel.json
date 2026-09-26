@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://dropquest.onrender.com/api/:path*" },
+    { "source": "/uploads/:path*", "destination": "https://dropquest.onrender.com/uploads/:path*" }
+  ]
+}
