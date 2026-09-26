@@ -12,12 +12,12 @@
       {
         "id": "styling_idea",
         "result": "pass",
-        "evidence": "Would carry the bag in the crook of her arm with a beige trench."
+        "evidence": "Explains how they would wear it with that outfit."
       },
       {
         "id": "product_detail",
         "result": "pass",
-        "evidence": "Mentions the gold-plated hardware."
+        "evidence": "Mentions a detail from the drop card."
       },
       {
         "id": "suitable",
@@ -25,7 +25,7 @@
         "evidence": "On topic and suitable."
       }
     ],
-    "feedback": "Great entry. Your Birkin is held for 10 minutes.",
+    "feedback": "Great entry. Your item is held for 10 minutes.",
     "suggested_caption": "Oat matcha, a trench, and a Birkin 25 in gold. #ad #HotDrop"
   },
   "reservation": {
