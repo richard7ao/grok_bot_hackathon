@@ -26,7 +26,7 @@
       }
     ],
     "feedback": "Great entry. Your Birkin is held for 10 minutes.",
-    "suggested_caption": "Oat matcha, a trench, and a Birkin 25 in gold. #ad #FleekDropQuest"
+    "suggested_caption": "Oat matcha, a trench, and a Birkin 25 in gold. #ad #HotDrop"
   },
   "reservation": {
     "id": 1,
@@ -34,7 +34,7 @@
     "attempt_id": 2,
     "status": "held",
     "expires_at": "2026-09-26T11:10:00.000Z",
-    "caption": "Oat matcha, a trench, and a Birkin 25 in gold. #ad #FleekDropQuest",
+    "caption": "Oat matcha, a trench, and a Birkin 25 in gold. #ad #HotDrop",
     "price_pence": 1850000,
     "video_url": "/uploads/sample.webm"
   },

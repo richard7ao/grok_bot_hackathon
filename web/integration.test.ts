@@ -28,7 +28,8 @@ test("index has every screen, Leaflet and app.js", async () => {
   for (const id of SCREENS) expect(html).toContain(`id="${id}"`);
   expect(html).toContain("maplibre-gl@4.7.1/dist/maplibre-gl.js");
   expect(html).toContain('src="/app.js"');
-  expect(html).toContain('id="debug"');
+  expect(html).not.toContain('id="debug"'); // location gate removed: no "at venue" toggle
+  expect(html).toContain("<title>HotDrop</title>");
 });
 
 test("static assets are served", async () => {
@@ -85,12 +86,12 @@ test("mock attempts alternate retry then pass with a held reservation", async ()
 
 test("app.js sends the multipart fields the contract names", async () => {
   const js = await (await fetch(`${base}/app.js`)).text();
-  for (const field of ['"video"', '"transcript"', '"duration_ms"', '"debug"', '"lat"', '"lng"', "`frame${i}`"]) expect(js).toContain(field);
+  for (const field of ['"video"', '"transcript"', '"duration_ms"', "`frame${i}`"]) expect(js).toContain(field);
 });
 
 test("app.js enforces the caption suffix and uses posted then buy", async () => {
   const js = await (await fetch(`${base}/app.js`)).text();
-  expect(js).toContain("#ad #FleekDropQuest");
+  expect(js).toContain("#ad #HotDrop");
   expect(js.indexOf("/posted`")).toBeGreaterThan(-1);
   expect(js.indexOf("/buy`")).toBeGreaterThan(-1);
   const posted = await (await fetch(`${base}/api/reservations/1/posted`, { method: "POST" })).json();
@@ -165,5 +166,5 @@ test("record screen burns the product sticker into the recording and frames", as
 });
 
 test("customer app uses real product photos, not the SVG placeholders", async () => {
-  for (const path of ["/", "/app.js"]) expect(await (await fetch(base + path)).text()).not.toMatch(/\/img\/[\w-]+\.svg/);
+  for (const path of ["/", "/app.js"]) expect(await (await fetch(base + path)).text()).not.toMatch(/\/img\/(?!avatar\.svg)[\w-]+\.svg/); // avatar.svg is the map "you" marker, not a product
 });

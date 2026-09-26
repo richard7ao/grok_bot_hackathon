@@ -16,8 +16,6 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 15px/1.45
 .bar { display: flex; gap: 6px; align-items: baseline; padding: 14px 20px 8px; }
 .bar strong { font: 800 21px "Inter Tight", sans-serif; letter-spacing: -.04em; }
 .by { color: var(--muted); font-size: 13px; font-weight: 500; }
-.debug { margin-left: auto; font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; cursor: pointer; }
-.debug input { accent-color: var(--cobalt); }
 .stories { display: flex; gap: 4px; padding: 0 16px 8px; }
 .stories i { flex: 1; height: 3px; border-radius: 3px; background: rgba(0,0,0,.12); }
 .stories i.on { background: var(--ink); }
@@ -93,7 +91,12 @@ a { color: var(--ink); font-weight: 600; }
 .pin.live img { box-shadow: 0 0 0 2px var(--cobalt), 0 4px 12px -2px rgba(0,0,0,.35); }
 .pin.preview img { filter: grayscale(1); opacity: .75; width: 38px; height: 38px; }
 .pin.preview span { background: #9A9A9A; }
-.you { width: 16px; height: 16px; border-radius: 50%; background: var(--cobalt); border: 3px solid #fff; box-shadow: 0 0 0 0 rgba(27,92,255,.5); animation: pulse 2s infinite; }
+.you { display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
+.you .ava { position: relative; width: 48px; height: 48px; }
+.you .ava::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: rgba(27,92,255,.35); animation: ping 2s ease-out infinite; }
+.you img { position: relative; display: block; width: 48px; height: 48px; box-sizing: border-box; border-radius: 50%; border: 3px solid #fff; background: #d1d4f9; box-shadow: 0 6px 16px -4px rgba(0,0,0,.35); }
+.you span { padding: 2px 8px; border-radius: 999px; background: var(--cobalt); color: #fff; font: 700 11px Inter, sans-serif; white-space: nowrap; }
+@keyframes ping { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
 @keyframes pulse { 70% { box-shadow: 0 0 0 16px rgba(27,92,255,0); } 100% { box-shadow: 0 0 0 0 rgba(27,92,255,0); } }
 
 /* Drop sheet hero */
@@ -104,7 +107,6 @@ a { color: var(--ink); font-weight: 600; }
 
 /* Record + preview: full-bleed Reels-style camera. #app.cam overlays the header in white. */
 #app.cam .bar { position: absolute; top: 0; left: 0; right: 0; z-index: 20; color: #fff; }
-#app.cam .by, #app.cam .debug { color: rgba(255,255,255,.75); }
 #app.cam .stories { display: none; }
 .cam-screen { position: relative; height: 100dvh; min-height: 620px; padding: 0; overflow: hidden; background: #000; color: #fff; }
 .cam-screen > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }

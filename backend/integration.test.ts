@@ -38,7 +38,6 @@ function entry(transcript: string, extra: Record<string, string> = {}, video = n
   f.set("frame0", new File([new Uint8Array(10)], "frame0.jpg", { type: "image/jpeg" }));
   f.set("transcript", transcript);
   f.set("duration_ms", "15000");
-  f.set("debug", "1");
   for (const [k, v] of Object.entries(extra)) f.set(k, v);
   return f;
 }
@@ -76,7 +75,7 @@ test("pass → held → posted → purchased; repeated taps return the same stat
   expect(body.attempt.verdict).toBe("pass");
   expect(keys(body.reservation)).toEqual(keys(await fixture("reservation-held.json")));
   expect(body.reservation.status).toBe("held");
-  expect(body.reservation.caption.endsWith("#ad #FleekDropQuest")).toBe(true);
+  expect(body.reservation.caption.endsWith("#ad #HotDrop")).toBe(true);
   expect((await fetch(api + body.reservation.video_url)).status).toBe(200);
 
   const id = body.reservation.id;
@@ -119,12 +118,11 @@ test("a 4th counted attempt is refused", async () => {
   expect((await res.json()).error).toBe("ATTEMPTS_EXHAUSTED");
 });
 
-test("location gate: far away is refused, at the venue is accepted", async () => {
+test("no location gate: an entry from far away is accepted", async () => {
+  // Anyone can enter a live drop from anywhere; lat/lng/debug are ignored if sent.
   const far = await post(api, "/api/drops/1/attempts", entry(PASS, { debug: "0", lat: "0", lng: "0" }));
-  expect(far.status).toBe(403);
-  expect((await far.json()).error).toBe("OUTSIDE_ZONE");
-  const near = await post(api, "/api/drops/1/attempts", entry(PASS, { debug: "0", lat: "51.5238", lng: "-0.0786" }));
-  expect(near.status).toBe(200);
+  expect(far.status).toBe(200);
+  expect((await far.json()).attempt.verdict).toBe("pass");
 });
 
 test("bad duration, preview drop and missing video are refused before review", async () => {
