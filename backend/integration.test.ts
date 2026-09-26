@@ -8,12 +8,16 @@ const fixture = (name: string) => Bun.file(join(FIXTURES, name)).json();
 const keys = (o: object) => Object.keys(o).sort();
 const procs: Bun.Subprocess[] = [];
 
-async function start(port: number, env: Record<string, string> = {}) {
+// Test servers run with DEMO_MODE=1; pass { DEMO_MODE: undefined } to start one with it unset.
+// --no-env-file: the gitignored backend/.env must not leak settings (DEMO_MODE, OPENAI_*) into tests.
+async function start(port: number, overrides: Record<string, string | undefined> = {}) {
   const dir = mkdtempSync(join(tmpdir(), "dq-"));
+  const env = { ...process.env, PORT: String(port), DB_PATH: join(dir, "t.db"), UPLOADS_DIR: join(dir, "up"), REVIEW_MODE: "fake", VENUE_LAT: "51.5237", VENUE_LNG: "-0.0785", DEMO_MODE: "1", ...overrides };
+  for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
   procs.push(
-    Bun.spawn([process.execPath, "server.ts"], {
+    Bun.spawn([process.execPath, "--no-env-file", "server.ts"], {
       cwd: import.meta.dir,
-      env: { ...process.env, PORT: String(port), DB_PATH: join(dir, "t.db"), UPLOADS_DIR: join(dir, "up"), REVIEW_MODE: "fake", VENUE_LAT: "51.5237", VENUE_LNG: "-0.0785", ...env },
+      env,
       stdout: "ignore",
       stderr: "inherit",
     }),
@@ -353,12 +357,21 @@ test("demo approve refuses a pass or an older attempt with 409 BAD_STATE, unknow
   expect((await post(api, "/api/attempts/99999/approve")).status).toBe(404);
 });
 
-test("demo approve is 404 when DEMO_MODE=0", async () => {
-  const base = await start(3909, { DEMO_MODE: "0" });
-  const retry = (await (await post(base, "/api/drops/1/attempts", entry(RETRY))).json()).attempt;
-  const res = await post(base, `/api/attempts/${retry.id}/approve`);
-  expect(res.status).toBe(404);
-  expect((await res.json()).error).toBe("NOT_FOUND");
+test("demo bypasses are off unless DEMO_MODE=1: approve is 404 and demo_pass is ignored", async () => {
+  for (const [port, mode] of [[3909, undefined], [3910, "0"], [3911, "true"]] as const) {
+    const base = await start(port, { DEMO_MODE: mode });
+    const pending = (await (await post(base, "/api/drops/1/attempts", entry(RETRY))).json()).attempt;
+    const res = await post(base, `/api/attempts/${pending.id}/approve`);
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("NOT_FOUND");
+    // demo_pass=1 is ignored: an empty transcript is still refused, and a real one is reviewed normally.
+    const blank = await post(base, "/api/drops/2/attempts", entry("", { demo_pass: "1" }));
+    expect(blank.status).toBe(400);
+    const reviewed = await (await post(base, "/api/drops/2/attempts", entry(RETRY, { demo_pass: "1" }))).json();
+    expect(reviewed.attempt.verdict).toBe("pending");
+    expect(reviewed.attempt.score).not.toBe(100);
+    expect(reviewed.reservation).toBeNull();
+  }
 });
 
 test("demo skip: empty transcript with demo_pass=1 is a pass and holds stock", async () => {

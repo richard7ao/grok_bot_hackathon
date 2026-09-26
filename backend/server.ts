@@ -9,6 +9,8 @@ const UPLOADS = process.env.UPLOADS_DIR ?? "uploads";
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 // The web recorder auto-stops at 20 s but measures after the stop fires, so allow timer slack.
 const MAX_DURATION_MS = 21_000;
+// Demo bypasses (demo_pass skip, POST /api/attempts/:id/approve) are opt-in: only DEMO_MODE=1 enables them.
+const DEMO_MODE = process.env.DEMO_MODE === "1";
 if (process.env.REVIEW_MODE !== "fake" && !process.env.OPENAI_API_KEY)
   throw new Error("OPENAI_API_KEY is missing: put it in the repo-root .env and start with `bun dev`");
 mkdirSync(UPLOADS, { recursive: true });
@@ -44,8 +46,8 @@ async function postAttempt(req: Req) {
   const durationMs = Number(form.get("duration_ms"));
   if (!(durationMs >= 10_000 && durationMs <= MAX_DURATION_MS)) throw new ApiError(422, "BAD_DURATION", "Record between 10 and 20 seconds");
   const transcript = String(form.get("transcript") ?? "").slice(0, 4000);
-  // Demo only: a presenter can skip the review; disabled when DEMO_MODE=0.
-  const demoPass = form.get("demo_pass") === "1" && process.env.DEMO_MODE !== "0";
+  // Demo only: a presenter can skip the review; ignored unless DEMO_MODE=1.
+  const demoPass = DEMO_MODE && form.get("demo_pass") === "1";
   if (!demoPass && !transcript.trim()) throw new ApiError(400, "BAD_REQUEST", "We didn't catch any speech. Record again and talk us through your look.");
   const frames = [0, 1, 2, 3].map((i) => form.get(`frame${i}`)).filter((f): f is File => f instanceof File);
   const videoPath = `${crypto.randomUUID()}.${video.type.includes("mp4") ? "mp4" : "webm"}`;
@@ -80,7 +82,7 @@ function attemptResponse(drop: Drop, attempt: Attempt) {
 }
 
 function approve(req: Req) {
-  if (process.env.DEMO_MODE === "0") throw new ApiError(404, "NOT_FOUND", "No such route");
+  if (!DEMO_MODE) throw new ApiError(404, "NOT_FOUND", "No such route");
   const { drop, attempt } = approveAttempt(db, idOf(req));
   return attemptResponse(drop, attempt);
 }
