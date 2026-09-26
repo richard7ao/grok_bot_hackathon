@@ -48,8 +48,8 @@ function fakeReview(drop: Drop, transcript: string): Review {
   );
 }
 
-const OPENAI_URL = process.env.OPENAI_URL ?? "https://api.openai.com/v1/chat/completions";
-const TIMEOUT_MS = 45_000;
+export const OPENAI_URL = process.env.OPENAI_URL ?? "https://api.openai.com/v1/chat/completions";
+export const TIMEOUT_MS = 45_000;
 
 const SYSTEM = `You are "Fleek Drop Director", a friendly coach reviewing a short creator video for a Fleek pre-loved luxury drop.
 You receive the challenge prompt, merchant-approved product facts, a rubric, a speech transcript, and up to 4 frames from the video.

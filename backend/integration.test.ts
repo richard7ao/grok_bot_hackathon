@@ -63,7 +63,8 @@ test("drops match the contract and show live stock", async () => {
   expect(keys(body.drops[0])).toEqual(keys(fx.drops[0]));
   const live = body.drops.find((d: any) => d.status === "live");
   expect(live.available).toBe(3);
-  expect(body.drops.filter((d: any) => d.status === "preview").length).toBe(2);
+  expect(body.drops.length).toBe(8);
+  expect(body.drops.filter((d: any) => d.status === "preview").length).toBe(4);
 });
 
 test("pass → held → posted → purchased; repeated taps return the same state; dashboard counts it", async () => {
@@ -89,7 +90,7 @@ test("pass → held → posted → purchased; repeated taps return the same stat
   expect(keys(dash)).toEqual(keys(fx));
   expect(keys(dash.stock)).toEqual(keys(fx.stock));
   expect(keys(dash.funnel)).toEqual(keys(fx.funnel));
-  expect(dash.stock).toEqual({ total: 3, held: 0, posted: 0, sold: 1, available: 2 });
+  expect(dash.stock).toEqual({ total: 12, held: 0, posted: 0, sold: 1, available: 11 });
   expect(dash.funnel.purchased).toBe(1);
   expect(dash.events.map((e: any) => e.type)).toContain("hold_claimed");
 });
@@ -130,7 +131,7 @@ test("bad duration, preview drop and missing video are refused before review", a
   const short = await post(api, "/api/drops/1/attempts", entry(PASS, { duration_ms: "5000" }));
   expect(short.status).toBe(422);
   expect((await short.json()).error).toBe("BAD_DURATION");
-  const preview = await post(api, "/api/drops/2/attempts", entry(PASS));
+  const preview = await post(api, "/api/drops/5/attempts", entry(PASS));
   expect(preview.status).toBe(409);
   expect((await preview.json()).error).toBe("DROP_NOT_LIVE");
   const f = entry(PASS);
@@ -176,7 +177,7 @@ test("last unit: two simultaneous passing entries produce exactly one hold", asy
   const bodies = await Promise.all([a.json(), b.json()]);
   expect(bodies.filter((x) => x.reservation).length).toBe(1);
   const dash = await (await fetch(`${api}/api/dashboard`)).json();
-  expect(dash.stock).toEqual({ total: 1, held: 1, posted: 0, sold: 0, available: 0 });
+  expect(dash.stock).toEqual({ total: 4, held: 1, posted: 0, sold: 0, available: 3 });
 });
 
 test("expired hold frees stock and blocks posting", async () => {
@@ -218,4 +219,97 @@ test("upload path traversal and unknown routes return 404 JSON", async () => {
   const res = await fetch(`${api}/api/nope`);
   expect(res.status).toBe(404);
   expect((await res.json()).error).toBe("NOT_FOUND");
+});
+
+// Campaign tests run on their own server so created campaigns never touch the shared one's drops.
+const json = (base: string, method: string, path: string, body: unknown) =>
+  fetch(base + path, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+const CAMPAIGN = {
+  brand: "Fleek Luxe", title: "Chanel Classic Flap — Black Caviar", description: "A black caviar Classic Flap with gold hardware.",
+  price_pence: 920000, allocation_total: 1, image_url: "/img/baguette.svg", lat: 51.5237, lng: -0.0785, radius_m: 150, hold_minutes: 2,
+  prompt: "Show your outfit and say how you'd style the Flap.", facts: ["Black caviar leather", "Gold-tone hardware"],
+  rubric: [{ id: "outfit", label: "Outfit" }, { id: "styling_idea", label: "Styling" }, { id: "product_detail", label: "Detail" }, { id: "suitable", label: "Suitable" }],
+  status: "draft", public_launch_at: "2026-10-03T10:00:00.000Z",
+};
+let campaigns = "";
+const liveIds = async (base: string) => (await (await fetch(`${base}/api/drops`)).json()).drops.map((d: any) => d.id);
+
+test("campaign list and detail match the contract", async () => {
+  campaigns = await start(3906);
+  await post(campaigns, "/api/drops/1/attempts", entry(PASS));
+  const list = await (await fetch(`${campaigns}/api/campaigns`)).json();
+  const fx = await fixture("campaigns.json");
+  expect(keys(list)).toEqual(keys(fx));
+  expect(keys(list.campaigns[0])).toEqual(keys(fx.campaigns[0]));
+  expect(keys(list.campaigns[0].stats)).toEqual(keys(fx.campaigns[0].stats));
+  expect(list.campaigns.map((c: any) => c.id)).toEqual([8, 7, 6, 5, 4, 3, 2, 1]);
+  const detail = await (await fetch(`${campaigns}/api/campaigns/1`)).json();
+  const dfx = await fixture("campaign-detail.json");
+  expect(keys(detail)).toEqual(keys(dfx));
+  expect(keys(detail.campaign)).toEqual(keys(dfx.campaign));
+  expect(keys(detail.reviews[0])).toEqual(keys(dfx.reviews[0]));
+  expect(keys(detail.events[0])).toEqual(keys(dfx.events[0]));
+  expect(detail.stats).toEqual({ attempts: 1, passed: 1, held: 1, posted: 0, sold: 0 });
+  expect(detail.reviews[0].feedback.length).toBeGreaterThan(0);
+  expect((await (await fetch(`${campaigns}/api/campaigns/5`)).json()).events).toEqual([]);
+  expect((await fetch(`${campaigns}/api/campaigns/999`)).status).toBe(404);
+});
+
+test("a draft campaign stays hidden until PATCHed live", async () => {
+  const res = await json(campaigns, "POST", "/api/campaigns", CAMPAIGN);
+  expect(res.status).toBe(201);
+  const created = await res.json();
+  expect(keys(created)).toEqual(keys((await fixture("drops.json")).drops[0]));
+  expect(await liveIds(campaigns)).not.toContain(created.id);
+  const patched = await (await json(campaigns, "PATCH", `/api/campaigns/${created.id}`, { status: "live" })).json();
+  expect(patched.status).toBe("live");
+  expect(patched.title).toBe(CAMPAIGN.title);
+  expect(await liveIds(campaigns)).toContain(created.id);
+  const live = await (await json(campaigns, "POST", "/api/campaigns", { ...CAMPAIGN, status: "live" })).json();
+  expect(await liveIds(campaigns)).toContain(live.id);
+});
+
+test("bad campaign fields are 400s that name the field", async () => {
+  const cases: [Record<string, unknown>, string][] = [
+    [{ price_pence: 0 }, "price_pence"], [{ price_pence: 1.5 }, "price_pence"], [{ image_url: "/img/evil.svg" }, "image_url"],
+    [{ rubric: [{ id: "Bad Id", label: "x" }] }, "rubric"], [{ facts: [] }, "facts"], [{ status: "gone" }, "status"],
+    [{ public_launch_at: "soon" }, "public_launch_at"], [{ lat: "51" }, "lat"], [{ title: " " }, "title"],
+  ];
+  for (const [patch, field] of cases) {
+    const res = await json(campaigns, "PATCH", "/api/campaigns/1", patch);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("BAD_REQUEST");
+    expect(body.message).toContain(field);
+  }
+  const { hold_minutes, ...missing } = CAMPAIGN;
+  expect((await (await json(campaigns, "POST", "/api/campaigns", missing)).json()).message).toContain("hold_minutes");
+  const invalid = await fetch(`${campaigns}/api/campaigns`, { method: "POST", body: "{nope" });
+  expect(invalid.status).toBe(400);
+  expect((await json(campaigns, "PATCH", "/api/campaigns/999", { status: "live" })).status).toBe(404);
+});
+
+test("draft endpoint (fake mode) returns a prompt and the 4 rubric ids", async () => {
+  const res = await json(campaigns, "POST", "/api/campaigns/draft", { brand: "Chanel", title: "Classic Flap", description: "Black caviar leather. Gold-tone CC turn-lock." });
+  expect(res.status).toBe(200);
+  const body = await res.json();
+  expect(keys(body)).toEqual(keys(await fixture("campaign-draft.json")));
+  expect(body.prompt).toContain("Classic Flap");
+  expect(body.rubric.map((c: any) => c.id)).toEqual(["outfit", "styling_idea", "product_detail", "suitable"]);
+  expect(body.facts.length).toBeGreaterThan(0);
+  expect((await json(campaigns, "POST", "/api/campaigns/draft", { brand: "Chanel" })).status).toBe(400);
+});
+
+test("a new live campaign takes a passing entry and holds for its own hold_minutes", async () => {
+  const drop = await (await json(campaigns, "POST", "/api/campaigns", { ...CAMPAIGN, status: "live" })).json();
+  const { attempt, reservation } = await (await post(campaigns, `/api/drops/${drop.id}/attempts`, entry("Black jeans, and I'd wear the caviar flap crossbody."))).json();
+  expect(attempt.verdict).toBe("pass");
+  expect(reservation.status).toBe("held");
+  expect(reservation.price_pence).toBe(CAMPAIGN.price_pence);
+  const holdMs = Date.parse(reservation.expires_at) - Date.now();
+  expect(holdMs).toBeGreaterThan(110_000);
+  expect(holdMs).toBeLessThanOrEqual(120_000);
+  const detail = await (await fetch(`${campaigns}/api/campaigns/${drop.id}`)).json();
+  expect(detail.stats.held).toBe(1);
+  expect(detail.events.map((e: any) => e.type)).toContain("hold_claimed");
 });
