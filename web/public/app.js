@@ -288,14 +288,97 @@ $("#res-retry").onclick = () => {
   startCamera();
 };
 
-// Replaced in Task 3.
+// Share, post, buy
+const SUFFIX = "#ad #FleekDropQuest";
+const withSuffix = (c) => (c.includes(SUFFIX) ? c.trim() : `${c.trim()} ${SUFFIX}`.trim());
+
+function resume(reservation) {
+  st.res = reservation;
+  if (reservation.status === "held") return openShare();
+  if (reservation.status === "posted") return openBuy();
+  if (reservation.status === "purchased") return openDone();
+}
+
 function openShare() {
+  const r = st.res;
+  $("#sh-download").href = r.video_url;
+  $("#sh-download").download = `dropquest-clip.${r.video_url.split(".").pop()}`;
+  $("#sh-caption").value = r.caption;
+  startTimer("#sh-timer");
   show("s-share");
 }
 
-// Filled in by later tasks.
-function resume(reservation) {
-  st.res = reservation;
+$("#sh-copy").onclick = async () => {
+  const caption = withSuffix($("#sh-caption").value);
+  $("#sh-caption").value = caption;
+  try {
+    await navigator.clipboard.writeText(caption);
+    toast("Caption copied");
+  } catch {
+    toast("Select the caption and copy it");
+  }
+};
+
+$("#sh-posted").onclick = async () => {
+  try {
+    st.res = await api(`/api/reservations/${st.res.id}/posted`, { method: "POST" });
+    openBuy();
+  } catch (e) {
+    onReservationError(e);
+  }
+};
+
+function openBuy() {
+  $("#b-title").textContent = st.drop.title;
+  $("#b-price").textContent = pounds(st.res.price_pence);
+  startTimer("#b-timer");
+  show("s-buy");
+}
+
+$("#b-buy").onclick = async () => {
+  $("#b-buy").disabled = true;
+  try {
+    st.res = await api(`/api/reservations/${st.res.id}/buy`, { method: "POST" });
+    openDone();
+  } catch (e) {
+    onReservationError(e);
+  } finally {
+    $("#b-buy").disabled = false;
+  }
+};
+
+function openDone() {
+  clearInterval(st.timer);
+  $("#dn-title").textContent = st.drop.title;
+  show("s-done");
+}
+
+function onReservationError(e) {
+  if (e.code === "HOLD_EXPIRED") return showExpired();
+  toast(e.message);
+}
+
+function showExpired() {
+  clearInterval(st.timer);
+  $("#res-title").textContent = "Hold expired";
+  $("#res-feedback").textContent = "The item went back into the drop.";
+  $("#res-criteria").replaceChildren();
+  $("#res-retry").hidden = true;
+  $("#res-map").hidden = false;
+  show("s-result");
+}
+
+// Countdown from the server's expires_at, so navigation or reload never resets it.
+function startTimer(sel) {
+  clearInterval(st.timer);
+  const draw = () => {
+    const ms = Date.parse(st.res.expires_at) - Date.now();
+    if (ms <= 0) return showExpired();
+    const s = Math.ceil(ms / 1000);
+    $(sel).textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  };
+  draw();
+  st.timer = setInterval(draw, 1000);
 }
 
 boot();

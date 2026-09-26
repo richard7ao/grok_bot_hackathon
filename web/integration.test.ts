@@ -70,3 +70,13 @@ test("app.js sends the multipart fields the contract names", async () => {
   const js = await (await fetch(`${base}/app.js`)).text();
   for (const field of ['"video"', '"transcript"', '"duration_ms"', '"debug"', '"lat"', '"lng"', "`frame${i}`"]) expect(js).toContain(field);
 });
+
+test("app.js enforces the caption suffix and uses posted then buy", async () => {
+  const js = await (await fetch(`${base}/app.js`)).text();
+  expect(js).toContain("#ad #FleekDropQuest");
+  expect(js.indexOf("/posted`")).toBeGreaterThan(-1);
+  expect(js.indexOf("/buy`")).toBeGreaterThan(-1);
+  const posted = await (await fetch(`${base}/api/reservations/1/posted`, { method: "POST" })).json();
+  expect(posted.status).toBe("posted");
+  expect((await (await fetch(`${base}/api/reservations/1/buy`, { method: "POST" })).json()).status).toBe("purchased");
+});
