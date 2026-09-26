@@ -1,6 +1,8 @@
 // DropQuest Studio: merchant campaigns, AI challenge draft, reviews.
 // All API and user text goes through textContent; never parsed as HTML.
-const IMAGES = ["/img/birkin.svg", "/img/baguette.svg", "/img/flats.svg", "/img/jacket.svg", "/img/shell.svg", "/img/sneaker.svg", "/img/shirt.svg"];
+const PHOTOS = [["Birkin", "birkin"], ["Arc'teryx", "arcteryx"], ["Carhartt", "carhartt"], ["XT-6", "xt6"], ["Stone Island", "stoneisland"], ["Football", "football"], ["Baguette", "baguette"], ["Flats", "flats"]].map(([label, f]) => ({ label, src: `/img/photos/${f}.jpg` }));
+const ILLUSTRATIONS = ["birkin", "baguette", "flats", "jacket", "shell", "sneaker", "shirt"].map((f) => ({ label: `${f} illustration`, src: `/img/${f}.svg` }));
+const IMAGES = [...PHOTOS, ...ILLUSTRATIONS].map((i) => i.src);
 const ACCENT = "#1B5CFF";
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 const STATUSES = ["draft", "preview", "live", "ended"];
@@ -408,16 +410,21 @@ function closeEditor() {
 
 function renderImages() {
   $("image-picker").replaceChildren(
-    ...IMAGES.map((src) => {
-      const b = el("button", "tile");
-      b.type = "button";
-      b.setAttribute("aria-pressed", String(src === state.image));
-      b.setAttribute("aria-label", src.split("/").pop().replace(".svg", ""));
-      b.append(productImg(src));
-      b.onclick = () => ((state.image = src), renderImages());
-      return b;
-    }),
+    ...PHOTOS.map(imageTile),
+    el("span", "tiles-lbl", "Illustrations"),
+    ...ILLUSTRATIONS.map(imageTile),
   );
+}
+
+function imageTile({ label, src }) {
+  const b = el("button", src.endsWith(".jpg") ? "tile photo" : "tile");
+  b.type = "button";
+  b.setAttribute("aria-pressed", String(src === state.image));
+  b.setAttribute("aria-label", label);
+  b.title = label;
+  b.append(productImg(src));
+  b.onclick = () => ((state.image = src), renderImages());
+  return b;
 }
 
 function renderFacts() {
