@@ -1,4 +1,7 @@
 // HotDrop customer app. Vanilla JS; screens are <section class="screen"> toggled by show().
+// On Vercel, attempt uploads go straight to Render: Vercel's proxy caps request bodies at ~4.5 MB.
+const UPLOAD_ORIGIN = "https://dropquest.onrender.com";
+const uploadOrigin = () => (location.hostname.endsWith("vercel.app") ? UPLOAD_ORIGIN : "");
 const $ = (sel) => document.querySelector(sel);
 const st = { drops: [], drop: null, pos: null, res: null, clip: null, timer: null, attemptsLeft: null, durationMs: 0, pending: null, pollTimer: null, polling: false, waitScored: false };
 const pounds = (pence) => (pence / 100).toLocaleString("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: pence % 100 ? 2 : 0 });
@@ -126,8 +129,9 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("[data-back]")) goBack();
 });
 
+// opts.origin (optional) prefixes the path; only attempt uploads use it.
 async function api(path, opts) {
-  const res = await fetch(path, opts);
+  const res = await fetch((opts?.origin ?? "") + path, opts);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(body.message ?? `Request failed (${res.status})`), { code: body.error });
   return body;
@@ -663,16 +667,76 @@ async function finishRecording() {
   if (cam.aborted) return;
   const type = recorder.mimeType || "video/webm";
   const blob = new Blob(chunks, { type });
-  st.clip = { blob, url: URL.createObjectURL(blob), ext: type.includes("mp4") ? "mp4" : "webm", frames: [...frames], transcript: transcript.trim(), durationMs: st.durationMs };
+  st.clip = { blob, url: URL.createObjectURL(blob), ext: type.includes("mp4") ? "mp4" : "webm", frames: [...frames], transcript: transcript.trim(), durationMs: st.durationMs, source: "camera" };
+  showPreview(st.clip.transcript || "(nothing heard in the browser, so we'll transcribe the audio when you submit)");
+}
+
+function showPreview(said) {
   $("#p-video").src = st.clip.url;
-  $("#p-dur").textContent = fmtClock(st.durationMs);
-  $("#p-transcript").textContent = st.clip.transcript || "(nothing heard, so speak up and retake)";
+  $("#p-dur").textContent = fmtClock(st.clip.durationMs);
+  const upload = st.clip.source === "upload";
+  $("#p-heard").textContent = upload ? "We'll transcribe the audio when you submit." : "Your stylist will hear:";
+  $("#p-transcript").textContent = said;
+  $("#p-transcript").hidden = upload;
   show("s-preview");
   $("#p-video").play().catch(() => {
     $("#p-video").muted = true;
     $("#p-video").play().catch(() => {});
   });
 }
+// Upload: an existing video instead of a camera take. The server transcribes its audio on submit.
+const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
+const UPLOAD_MIN_MS = 3000;
+const UPLOAD_MAX_MS = 90000;
+const pickUpload = () => {
+  if (recorder?.state === "recording") return;
+  $("#r-file").value = "";
+  $("#r-file").click();
+};
+$("#r-upload").onclick = pickUpload;
+$("#r-upload-link").onclick = pickUpload;
+$("#r-file").onchange = async () => {
+  const file = $("#r-file").files[0];
+  if (!file) return;
+  if (!file.type.startsWith("video/")) return toast("That isn't a video. Pick an mp4, mov or webm file.");
+  if (file.size > UPLOAD_MAX_BYTES) return toast("That video is over 50 MB. Trim it or pick a shorter one.");
+  const url = URL.createObjectURL(file);
+  const v = Object.assign(document.createElement("video"), { src: url, muted: true, playsInline: true, preload: "auto" });
+  try {
+    await once(v, "loadedmetadata");
+    const durationMs = Math.round(v.duration * 1000);
+    if (!(durationMs >= UPLOAD_MIN_MS)) throw new Error("That video is too short. Pick one between 3 and 90 seconds.");
+    if (durationMs > UPLOAD_MAX_MS) throw new Error("That video is too long. Pick one between 3 and 90 seconds.");
+    const clipFrames = [];
+    for (const at of [0.2, 0.4, 0.6, 0.8]) {
+      v.currentTime = v.duration * at;
+      await once(v, "seeked");
+      const b = await frameOf(v);
+      if (b) clipFrames.push(b);
+    }
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    st.clip = { blob: file, url, ext: ["mp4", "webm", "mov"].includes(ext) ? ext : file.type.includes("webm") ? "webm" : "mp4", frames: clipFrames, transcript: "", durationMs, source: "upload" };
+    releaseCamera();
+    showPreview("");
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    toast(e.message || "We couldn't read that video. Try an mp4 file.");
+  }
+};
+// Resolves on the event, rejects if the browser can't decode the file.
+function once(el, ev) {
+  return new Promise((resolve, reject) => {
+    el.addEventListener(ev, resolve, { once: true });
+    el.addEventListener("error", () => reject(new Error("We couldn't read that video. Try an mp4 file.")), { once: true });
+  });
+}
+function frameOf(v) {
+  const scale = Math.min(1, 512 / Math.max(v.videoWidth, v.videoHeight));
+  const c = Object.assign(document.createElement("canvas"), { width: Math.round(v.videoWidth * scale), height: Math.round(v.videoHeight * scale) });
+  c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+  return new Promise((r) => c.toBlob(r, "image/jpeg", 0.8));
+}
+
 $("#p-retake").onclick = () => {
   show("s-record");
   startCamera();
@@ -687,13 +751,17 @@ async function submitClip(demoPass = false) {
   c.frames.forEach((b, i) => f.set(`frame${i}`, b, `frame${i}.jpg`));
   f.set("transcript", c.transcript);
   f.set("duration_ms", String(c.durationMs));
+  f.set("source", c.source);
   if (demoPass) f.set("demo_pass", "1");
   show("s-review");
-  $("#rv-stage").textContent = "Uploading your clip…";
-  const stage = setTimeout(() => ($("#rv-stage").textContent = "Sending it to the stylist…"), 1200);
+  const upload = c.source === "upload";
+  $("#rv-stage").textContent = upload ? "Uploading your video…" : "Uploading your clip…";
+  // The server transcribes uploads and silent camera takes before the stylist sees them.
+  const later = upload || !c.transcript ? "Transcribing your video…" : "Sending it to the stylist…";
+  const stage = setTimeout(() => ($("#rv-stage").textContent = later), 1200);
   let body;
   try {
-    body = await api(`/api/drops/${st.drop.id}/attempts`, { method: "POST", body: f });
+    body = await api(`/api/drops/${st.drop.id}/attempts`, { method: "POST", body: f, origin: uploadOrigin() });
   } catch (e) {
     return showResult(null, e);
   } finally {

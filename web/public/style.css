@@ -402,3 +402,5 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; background: tra
   .score-fg, .metrics b { transition: none; }
   #w-poll::before { animation: none; }
 }
+.upload-link { padding: 6px 12px; border: 0; border-radius: 999px; background: rgba(0,0,0,.32); color: #fff; font: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.upload-link:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }

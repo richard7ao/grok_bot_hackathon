@@ -3,12 +3,17 @@ import { basename, join } from "node:path";
 import { parseDecision, readJson, validateCampaign, validateReview } from "./campaigns";
 import { ApiError, approveAttempt, attemptWithReservation, buy, campaignDetail, claimHold, createAttempt, createCampaign, dashboard, decideAttempt, dropState, getAttempt, getDrop, getReservation, listCampaigns, listDrops, markPosted, openDb, reset, reviewSettings, saveReview, updateCampaign, updateReviewSettings, type Attempt, type Drop } from "./db";
 import { draftChallenge, parseDraftInput } from "./draft";
-import { decide, demoPassReview, errorReview, reviewAttempt, type Review } from "./review";
+import { decide, demoPassReview, errorReview, reviewAttempt, transcribe, type Review } from "./review";
 
 const UPLOADS = process.env.UPLOADS_DIR ?? "uploads";
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 // The web recorder auto-stops at 20 s but measures after the stop fires, so allow timer slack.
 const MAX_DURATION_MS = 21_000;
+// Uploaded videos (source=upload) are trimmed by nobody, so allow a wider window.
+const UPLOAD_MIN_MS = 3_000;
+const UPLOAD_MAX_MS = 90_000;
+// Origins allowed to POST attempts straight to this server (the Vercel frontend bypasses its proxy's body limit).
+const CORS_ORIGINS = (process.env.CORS_ORIGINS ?? "https://hotdrop-sigma.vercel.app,http://localhost:5173").split(",").map((o) => o.trim()).filter(Boolean);
 // Demo bypasses (demo_pass skip, POST /api/attempts/:id/approve) are opt-in: only DEMO_MODE=1 enables them.
 const DEMO_MODE = process.env.DEMO_MODE === "1";
 if (process.env.REVIEW_MODE !== "fake" && !process.env.OPENAI_API_KEY)
@@ -44,13 +49,16 @@ async function postAttempt(req: Req) {
   if (!form || !(video instanceof File)) throw new ApiError(400, "BAD_REQUEST", "Missing video");
   if (video.size > MAX_VIDEO_BYTES) throw new ApiError(413, "TOO_LARGE", "Video is over 50 MB");
   const durationMs = Number(form.get("duration_ms"));
-  if (!(durationMs >= 10_000 && durationMs <= MAX_DURATION_MS)) throw new ApiError(422, "BAD_DURATION", "Record between 10 and 20 seconds");
-  const transcript = String(form.get("transcript") ?? "").slice(0, 4000);
+  const upload = form.get("source") === "upload";
+  if (upload ? !(durationMs >= UPLOAD_MIN_MS && durationMs <= UPLOAD_MAX_MS) : !(durationMs >= 10_000 && durationMs <= MAX_DURATION_MS))
+    throw new ApiError(422, "BAD_DURATION", upload ? "Upload a video between 3 and 90 seconds" : "Record between 10 and 20 seconds");
+  let transcript = String(form.get("transcript") ?? "").slice(0, 4000);
   // Demo only: a presenter can skip the review; ignored unless DEMO_MODE=1.
   const demoPass = DEMO_MODE && form.get("demo_pass") === "1";
+  if (!demoPass && (upload || !transcript.trim())) transcript = (await transcribe(video)).slice(0, 4000) || transcript;
   if (!demoPass && !transcript.trim()) throw new ApiError(400, "BAD_REQUEST", "We didn't catch any speech. Record again and talk us through your look.");
   const frames = [0, 1, 2, 3].map((i) => form.get(`frame${i}`)).filter((f): f is File => f instanceof File);
-  const videoPath = `${crypto.randomUUID()}.${video.type.includes("mp4") ? "mp4" : "webm"}`;
+  const videoPath = `${crypto.randomUUID()}.${video.type.includes("mp4") ? "mp4" : video.type.includes("quicktime") ? "mov" : "webm"}`;
 
   const attempt = createAttempt(db, { dropId: drop.id, videoPath, transcript, durationMs });
   let review: Review;
@@ -67,6 +75,17 @@ async function postAttempt(req: Req) {
   }
   saveReview(db, attempt.id, review);
   return attemptResponse(drop, getAttempt(db, attempt.id));
+}
+
+function cors(req: Request, res: Response) {
+  const origin = req.headers.get("origin");
+  res.headers.append("Vary", "Origin");
+  if (origin && CORS_ORIGINS.includes(origin)) {
+    res.headers.set("Access-Control-Allow-Origin", origin);
+    res.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.headers.set("Access-Control-Allow-Headers", "content-type");
+  }
+  return res;
 }
 
 // A pass claims the hold here; pending/retry/error hold nothing.
@@ -94,7 +113,10 @@ const server = Bun.serve({
   routes: {
     "/api/drops": { GET: handle(() => Response.json({ server_time: new Date().toISOString(), drops: listDrops(db) })) },
     "/api/drops/:id/state": { GET: handle((req) => Response.json(dropState(db, idOf(req)))) },
-    "/api/drops/:id/attempts": { POST: handle(postAttempt) },
+    "/api/drops/:id/attempts": {
+      POST: async (req) => cors(req, await handle(postAttempt)(req)),
+      OPTIONS: (req) => cors(req, new Response(null, { status: 204 })),
+    },
     "/api/attempts/:id": { GET: handle((req) => Response.json(attemptWithReservation(db, idOf(req)))) },
     "/api/attempts/:id/approve": { POST: handle(approve) },
     "/api/reservations/:id": { GET: handle((req) => Response.json(getReservation(db, idOf(req)))) },

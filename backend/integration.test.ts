@@ -510,3 +510,38 @@ test("demo approve and demo skip jump a pending take to a pass scored 100", asyn
   expect(skipped.attempt).toMatchObject({ verdict: "pass", score: 100 });
   expect(skipped.reservation.status).toBe("held");
 });
+
+// Uploads: the server transcribes when the transcript is empty or source=upload (fake mode: non-silent video → FAKE text).
+const noisy = () => new Uint8Array(1000).fill(7);
+
+test("an empty transcript is transcribed server-side and scored instead of refused", async () => {
+  const res = await post(api, "/api/drops/1/attempts", entry("", {}, noisy()));
+  expect(res.status).toBe(200);
+  const body = await res.json();
+  // The fake transcript mentions "hardware", a drop-1 fact, so auto-review passes it.
+  expect(body.attempt.verdict).toBe("pass");
+  const reviews = (await (await fetch(`${api}/api/campaigns/1`)).json()).reviews;
+  expect(reviews[0].transcript).toContain("hardware");
+});
+
+test("uploads allow 3–90 s; camera takes still cap at 20 s", async () => {
+  const upload55 = await post(api, "/api/drops/1/attempts", entry("", { source: "upload", duration_ms: "55000" }, noisy()));
+  expect(upload55.status).toBe(200);
+  const upload95 = await post(api, "/api/drops/1/attempts", entry("", { source: "upload", duration_ms: "95000" }, noisy()));
+  expect(upload95.status).toBe(422);
+  expect((await upload95.json()).error).toBe("BAD_DURATION");
+  const camera55 = await post(api, "/api/drops/1/attempts", entry(PASS, { duration_ms: "55000" }));
+  expect(camera55.status).toBe(422);
+});
+
+test("attempt uploads allow CORS only for listed origins, with a 204 preflight", async () => {
+  const ok = await fetch(`${api}/api/drops/1/attempts`, { method: "POST", body: entry(PASS), headers: { origin: "https://hotdrop-sigma.vercel.app" } });
+  expect(ok.headers.get("access-control-allow-origin")).toBe("https://hotdrop-sigma.vercel.app");
+  expect(ok.headers.get("vary")).toContain("Origin");
+  const evil = await fetch(`${api}/api/drops/1/attempts`, { method: "POST", body: entry(PASS), headers: { origin: "https://evil.example" } });
+  expect(evil.headers.get("access-control-allow-origin")).toBeNull();
+  const pre = await fetch(`${api}/api/drops/1/attempts`, { method: "OPTIONS", headers: { origin: "http://localhost:5173", "access-control-request-method": "POST" } });
+  expect(pre.status).toBe(204);
+  expect(pre.headers.get("access-control-allow-origin")).toBe("http://localhost:5173");
+  expect(pre.headers.get("access-control-allow-methods")).toContain("POST");
+});

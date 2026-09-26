@@ -97,3 +97,10 @@ Flow for `POST /api/drops/:id/attempts` (response shape unchanged: `{ attempt, r
 | POST /api/campaigns/:id/decisions | JSON `{ attempt_id, decision: "approve" \| "reject", note? }` | `{ attempt, reservation, error }`. Approve claims a hold (`error` may be `NO_STOCK` / `ALREADY_RESERVED`); reject sets `retry`, with `feedback` = note or a default | 400, 404, 409 BAD_STATE (not pending) |
 | GET /api/campaigns/:id | — | as before, plus `campaign.review: ReviewSettings`. `reviews` lists pending takes by score (highest first), then the rest newest first | 404 |
 | PATCH /api/campaigns/:id | as before, plus optional `review: Partial<ReviewSettings>` | `Drop` | 400 |
+
+## v4 — uploaded videos, server-side transcription, direct uploads
+
+`POST /api/drops/:id/attempts` gains an optional multipart field `source`: `"camera"` (default) | `"upload"`.
+- `transcript` is optional. When it is empty, or `source` is `"upload"`, the server transcribes the video's audio (OpenAI `/v1/audio/transcriptions`, model `OPENAI_TRANSCRIBE_MODEL`, default `gpt-4o-mini-transcribe`, falling back to `whisper-1`) and uses that text (≤ 4000 chars) as the transcript. If transcription fails or hears nothing, the attempt is refused with 400 BAD_REQUEST ("We didn't catch any speech…") unless `demo_pass=1` with `DEMO_MODE=1`. The transcript stays untrusted input. `REVIEW_MODE=fake` returns a fixed transcript (empty for an all-zero test video).
+- `duration_ms`: camera takes 10000–20000 ms (21000 allowed for timer slack); uploads 3000–90000 ms. Otherwise 422 BAD_DURATION. Size limit stays 50 MB.
+- CORS: this route (POST and its OPTIONS preflight, which returns 204) answers with `Access-Control-Allow-Origin` reflecting the request's `Origin` only when it is listed in env `CORS_ORIGINS` (comma-separated; default `https://hotdrop-sigma.vercel.app,http://localhost:5173`), plus `Vary: Origin`, `Access-Control-Allow-Methods: POST, OPTIONS`, `Access-Control-Allow-Headers: content-type`. The Vercel frontend posts attempts straight to the Render backend to avoid Vercel's ~4.5 MB proxy body limit; every other call stays same-origin.
