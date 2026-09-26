@@ -13,7 +13,7 @@ const RUBRIC = [
   { id: "suitable", label: "Keep it relevant and suitable" },
 ];
 const EVENT_LABELS = {
-  reviewed: "AI reviewed an attempt",
+  reviewed: "Attempt reviewed",
   hold_claimed: "Hold claimed",
   posted: "Instagram post confirmed",
   purchased: "Purchased",
@@ -330,7 +330,7 @@ function review(r) {
 }
 
 function eventLabel({ type, detail = {} }) {
-  if (type === "reviewed") return `AI reviewed attempt ${detail.attempt_id ?? ""}${detail.verdict ? ` — ${detail.verdict}` : ""}`;
+  if (type === "reviewed") return `Reviewed attempt ${detail.attempt_id ?? ""}${detail.verdict ? ` — ${detail.verdict}` : ""}`;
   const base = EVENT_LABELS[type] || String(type).replaceAll("_", " ").replace(/^./, (m) => m.toUpperCase());
   return detail.reservation_id ? `${base} · reservation ${detail.reservation_id}` : base;
 }
@@ -551,7 +551,7 @@ function validate(c) {
     [!(Number.isFinite(c.radius_m) && c.radius_m > 0), "f-radius", "Radius must be more than 0 m"],
     [!c.prompt, "f-prompt", "Challenge prompt is required"],
     [c.facts.length === 0, "fact-input", "Add at least one drop-card fact"],
-    [c.rubric.some((r) => !r.label), "rubric-list", "Every AI check needs a label"],
+    [c.rubric.some((r) => !r.label), "rubric-list", "Every style check needs a label"],
   ];
   const hit = checks.find(([bad]) => bad);
   return hit ? { field: hit[1], message: hit[2] } : null;
@@ -602,7 +602,7 @@ async function save(e) {
 async function draftWithAI() {
   const brand = $("f-brand").value.trim(), title = $("f-title").value.trim(), description = $("f-description").value.trim();
   clearErrors();
-  if (!brand || !title || !description) return showError("Add a brand, title and description so the AI has something to work with", !brand ? "f-brand" : !title ? "f-title" : "f-description");
+  if (!brand || !title || !description) return showError("Add a brand, title and description so the draft has something to work with", !brand ? "f-brand" : !title ? "f-title" : "f-description");
   const btn = $("draft-ai");
   btn.disabled = true;
   btn.textContent = "Drafting…";
@@ -619,10 +619,10 @@ async function draftWithAI() {
     staggerIn($("rubric-list").children, 70);
     $("draft-note").hidden = false;
   } catch (err) {
-    showError(`AI draft failed: ${err.message}`);
+    showError(`Draft failed: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.textContent = "✨ Draft with AI";
+    btn.textContent = "✨ Auto-draft";
     $("challenge").classList.remove("shimmer");
   }
 }

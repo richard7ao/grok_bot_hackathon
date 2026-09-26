@@ -364,7 +364,7 @@ async function startCamera() {
   loadSticker();
   startCompositor();
   $("#r-go").disabled = false;
-  $("#r-note").textContent = SpeechRec ? "Speak clearly: the AI reads what you say." : "Speech capture needs Chrome. The AI will only see frames.";
+  $("#r-note").textContent = SpeechRec ? "Speak clearly: your stylist listens to what you say." : "Speech capture needs Chrome. Your stylist will only see frames.";
 }
 
 function stopCamera() {
@@ -710,7 +710,7 @@ function showResult(body, err) {
     return confetti($("#s-share .ring-wrap"));
   }
   $("#s-result").classList.remove("expired");
-  $("#res-title").textContent = err ? "Couldn't submit" : a.verdict === "pass" ? "Qualified, but the allocation is full" : a.verdict === "error" ? "The AI reviewer is unavailable" : "Almost there";
+  $("#res-title").textContent = err ? "Couldn't submit" : a.verdict === "pass" ? "Qualified, but the allocation is full" : a.verdict === "error" ? "The reviewer is unavailable" : "Almost there";
   $("#res-feedback").textContent = err ? err.message : body.error === "ALREADY_RESERVED" ? "You already hold this drop." : a.feedback;
   $("#res-criteria").replaceChildren(...(a?.criteria ?? []).map((c) => li(`${ruleLabel(c.id)}: ${c.evidence}`, c.result)));
   const canRetry = st.attemptsLeft !== 0 && (err ? !NO_RETRY.includes(err.code) : a.verdict !== "pass");
