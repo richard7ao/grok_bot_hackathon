@@ -29,7 +29,7 @@
 
   <section id="s-drop" class="screen" hidden>
     <div class="hero">
-      <button class="link back" data-go="s-map">← Map</button>
+      <button class="back-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
       <img id="d-img" class="product" alt="Drop item">
     </div>
     <div class="pad">
@@ -37,6 +37,7 @@
       <h1 id="d-title" class="title"></h1>
       <p id="d-desc" class="desc"></p>
       <div class="price"><b id="d-price"></b><span id="d-stock" class="pill sage"></span></div>
+      <div id="d-hold" class="hold-row" hidden><span class="pill sage">Held for you · <b id="d-hold-time" class="tnum"></b> left</span><button id="d-continue" class="cta">Continue</button></div>
       <div class="prompt"><h2>Your challenge</h2><p id="d-prompt"></p></div>
       <h2>Drop card</h2><ul id="d-facts" class="chips"></ul>
       <h2>Grok checks for</h2><ul id="d-rubric" class="checks"></ul>
@@ -47,18 +48,75 @@
     </div>
   </section>
 
-  <section id="s-record" class="screen dark" hidden>
-    <div class="cam"><video id="r-live" autoplay muted playsinline></video><p id="r-prompt" class="overlay"></p><p id="r-clock" class="clock">0s</p></div>
-    <button id="r-go" class="cta rec">Record</button>
-    <button id="r-stop" class="cta rec" hidden disabled>Stop</button>
-    <p id="r-note" class="hint center"></p>
+  <section id="s-record" class="screen cam-screen selfie" hidden>
+    <video id="r-live" autoplay muted playsinline></video>
+    <div id="r-guides" class="guides" hidden aria-hidden="true">
+      <i class="band b-top"></i><i class="band b-side"></i><i class="band b-bottom"></i>
+      <span class="face"><small>Keep your face here</small></span>
+    </div>
+    <div class="cam-top">
+      <div class="rprog" role="progressbar" aria-label="Clip length" aria-valuemin="0" aria-valuemax="20">
+        <i><b id="r-fill1"></b></i><span class="min-tick" title="10 s minimum"></span><i><b id="r-fill2"></b></i>
+      </div>
+      <div class="cam-row">
+        <button id="r-close" class="back-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <span id="r-clock" class="clock">0:00</span>
+        <span class="back-btn spacer" aria-hidden="true"></span>
+      </div>
+      <div id="r-card" class="prompt-card">
+        <p id="r-prompt"></p>
+        <ul class="rchips">
+          <li id="r-chip-outfit" data-chip="outfit">Outfit</li><li id="r-chip-styling" data-chip="styling">Styling</li><li id="r-chip-detail" data-chip="detail">Drop-card detail</li>
+        </ul>
+        <p class="chip-note">Hints only — Grok makes the call.</p>
+      </div>
+    </div>
+    <div class="rail">
+      <button id="r-flip"><span><svg viewBox="0 0 24 24"><path d="M4 9a8 8 0 0 1 14.5-3.5L20 8M20 3v5h-5M20 15a8 8 0 0 1-14.5 3.5L4 16M4 21v-5h5"/></svg></span><small>Flip</small></button>
+      <button id="r-timer" aria-pressed="true"><span><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2h5"/></svg></span><small id="r-timer-label">3s</small></button>
+      <button id="r-hints" aria-pressed="true"><span><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><small>Prompt</small></button>
+      <button id="r-guide" aria-pressed="false"><span><svg viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><circle cx="12" cy="11" r="3"/></svg></span><small>Guides</small></button>
+    </div>
+    <p id="r-captions" class="captions" aria-live="polite"></p>
+    <div id="r-count" class="countdown" hidden aria-live="assertive"></div>
+    <div class="cam-bottom">
+      <p id="r-min" class="min-hint" hidden>Keep going — 10s min</p>
+      <p id="r-note" class="hint center"></p>
+      <div id="r-shutter" class="shutter">
+        <i class="core" aria-hidden="true"></i>
+        <button id="r-go" aria-label="Start recording" disabled></button>
+        <button id="r-stop" aria-label="Stop recording" hidden disabled></button>
+      </div>
+    </div>
+    <div id="r-blocked" class="blocked" hidden>
+      <div class="blocked-card">
+        <span class="cam-icon"><svg viewBox="0 0 24 24"><path d="M3 7h3l2-3h8l2 3h3v12H3z"/><circle cx="12" cy="13" r="4"/></svg></span>
+        <h2>Camera or microphone is blocked</h2>
+        <p>Allow both from your browser's address bar, then try again.</p>
+        <button id="r-retry" class="cta">Try again</button>
+      </div>
+    </div>
   </section>
 
-  <section id="s-preview" class="screen" hidden>
-    <video id="p-video" controls playsinline></video>
-    <div class="bubble me"><p class="eyebrow">Grok heard</p><span id="p-transcript"></span></div>
-    <button id="p-submit" class="cta">Submit to Grok</button>
-    <button id="p-retake" class="cta ghost">Retake</button>
+  <section id="s-preview" class="screen cam-screen" hidden>
+    <video id="p-video" autoplay loop playsinline></video>
+    <div class="cam-top">
+      <div class="cam-row">
+        <button id="p-back" class="back-btn" data-back aria-label="Retake"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <span id="p-dur" class="clock">0:00</span>
+        <span class="back-btn spacer" aria-hidden="true"></span>
+      </div>
+    </div>
+    <div class="take-sheet">
+      <div class="handle"></div>
+      <p class="heard">Grok will hear:</p>
+      <p id="p-transcript" class="said"></p>
+      <ul class="rchips light">
+        <li id="p-chip-outfit" data-chip="outfit">Outfit</li><li id="p-chip-styling" data-chip="styling">Styling</li><li id="p-chip-detail" data-chip="detail">Drop-card detail</li>
+      </ul>
+      <button id="p-submit" class="cta">Use this take →</button>
+      <button id="p-retake" class="cta ghost">Retake</button>
+    </div>
   </section>
 
   <section id="s-review" class="screen" hidden>
@@ -71,6 +129,7 @@
     <!-- Honest by design: Grok's review has already run on the server and its verdict is stored
          in this browser (st.pending + localStorage dq_pending). Only the reveal waits REVIEW_WAIT_MS;
          the queue number and stage labels are presentational. "Fast-forward" reveals it now. -->
+    <p class="wait-note">Reviewing — you can leave, we'll keep your spot</p>
     <div class="dmhead"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">reviewing your take…</div></div></div>
     <div class="mytake"><img id="w-thumb" alt="Your clip"><span id="w-len">▶ my take</span></div>
     <div class="bubble">
@@ -88,6 +147,7 @@
   </section>
 
   <section id="s-result" class="screen" hidden>
+    <button class="back-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
     <div class="dmhead dm-only"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">reviewed your take · just now</div></div></div>
     <div class="bubble dm-only">
       <h1 id="res-title" class="disp"></h1>
@@ -112,6 +172,7 @@
   </section>
 
   <section id="s-share" class="screen tint" hidden>
+    <button class="back-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
     <p class="eyebrow">Passed · Grok approved</p>
     <h1>Post your Reel to unlock</h1>
     <div class="held-row">
@@ -144,6 +205,7 @@
   </section>
 
   <section id="s-buy" class="screen tint" hidden>
+    <button class="back-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
     <div class="buy-top"><p class="eyebrow">Early access unlocked</p><span class="pill sage timer-pill">Ends in <b id="b-timer" class="tnum"></b></span></div>
     <div class="hero"><img id="b-img" class="product" src="/img/birkin.svg" alt=""></div>
     <p id="b-brand" class="eyebrow"></p>
@@ -165,6 +227,7 @@
   </section>
 
   <section id="s-done" class="screen glow center" hidden>
+    <button class="back-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
     <span class="pill sage">Early access · purchased</span>
     <h2 class="yours">Yours. Officially.</h2>
     <div class="card polaroid"><div class="ph"><img id="dn-img" src="/img/birkin.svg" alt=""></div><p class="tag">DropQuest collectible</p><h1 id="dn-title" class="disp"></h1><p class="small">Order <span id="dn-order"></span></p></div>

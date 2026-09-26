@@ -105,3 +105,37 @@ test("dashboard page and data are served", async () => {
   const d = await (await fetch(`${base}/api/dashboard`)).json();
   expect(Object.keys(d.stock)).toEqual(["total", "held", "posted", "sold", "available"]);
 });
+
+// Reels-style camera: the tool rail, shutter, live captions and hint chips must exist, and the
+// existing ids the recording flow depends on must survive the redesign.
+test("record and preview screens carry the Reels camera controls", async () => {
+  const html = await (await fetch(`${base}/`)).text();
+  const ids = ["r-live", "r-go", "r-stop", "r-clock", "r-note", "r-prompt", "r-close", "r-shutter", "r-flip", "r-timer", "r-hints", "r-guide", "r-guides", "r-captions", "r-count", "r-blocked", "r-retry", "r-fill1", "r-fill2", "r-chip-outfit", "r-chip-styling", "r-chip-detail", "p-video", "p-transcript", "p-submit", "p-retake", "p-back", "p-dur", "p-chip-outfit", "p-chip-styling", "p-chip-detail"];
+  for (const id of ids) expect(html).toContain(`id="${id}"`);
+  expect(html).toContain("Hints only — Grok makes the call.");
+});
+
+// Interim results drive captions/chips only; the clip limits must match the contract (10–20 s).
+test("app.js uses interim speech results and the contract's clip limits", async () => {
+  const js = await (await fetch(`${base}/app.js`)).text();
+  expect(js).toContain("interimResults = true");
+  expect(js).toContain("MIN_MS = 10000, MAX_MS = 20000");
+  expect(js).toMatch(/if \(e\.results\[i\]\.isFinal\) transcript \+=/);
+});
+
+// Native-feel navigation: every non-map screen except the in-flight review has a back chevron,
+// and the browser/OS back gesture routes through the same parent map.
+test("every non-map screen has a back button and history back is wired", async () => {
+  const html = await (await fetch(`${base}/`)).text();
+  const sections = html.split('<section id="').slice(1).map((s) => [s.slice(0, s.indexOf('"')), s] as const);
+  for (const [id, body] of sections) {
+    if (id === "s-map") continue;
+    if (id === "s-review" || id === "s-wait") expect(body).not.toContain("data-back");
+    else expect(body).toMatch(/class="back-btn" data-back aria-label="[^"]+"/);
+  }
+  expect(html).toContain("you can leave, we'll keep your spot");
+  const js = await (await fetch(`${base}/app.js`)).text();
+  expect(js).toContain("history.pushState");
+  expect(js).toContain('addEventListener("popstate", goBack)');
+  expect(js).toContain('"s-buy": "s-share"');
+});
