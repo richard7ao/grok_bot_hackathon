@@ -1,18 +1,41 @@
 {
   "attempt": {
-    "id": 2, "n": 2, "verdict": "pass",
+    "id": 2,
+    "n": 2,
+    "verdict": "pass",
     "criteria": [
-      {"id": "outfit", "result": "pass", "evidence": "Describes a grey hoodie and black jeans."},
-      {"id": "styling_idea", "result": "pass", "evidence": "Would wear the jacket open over the hoodie."},
-      {"id": "product_detail", "result": "pass", "evidence": "Mentions the corduroy collar."},
-      {"id": "suitable", "result": "pass", "evidence": "On topic and suitable."}
+      {
+        "id": "outfit",
+        "result": "pass",
+        "evidence": "Describes a grey hoodie and black jeans."
+      },
+      {
+        "id": "styling_idea",
+        "result": "pass",
+        "evidence": "Would carry the bag in the crook of her arm with a beige trench."
+      },
+      {
+        "id": "product_detail",
+        "result": "pass",
+        "evidence": "Mentions the gold-plated hardware."
+      },
+      {
+        "id": "suitable",
+        "result": "pass",
+        "evidence": "On topic and suitable."
+      }
     ],
-    "feedback": "Great entry. Your jacket is held for 10 minutes.",
-    "suggested_caption": "Hoodie + brown duck chore jacket, collar up. #ad #FleekDropQuest"
+    "feedback": "Great entry. Your Birkin is held for 10 minutes.",
+    "suggested_caption": "Oat matcha, a trench, and a Birkin 25 in gold. #ad #FleekDropQuest"
   },
   "reservation": {
-    "id": 1, "drop_id": 1, "attempt_id": 2, "status": "held", "expires_at": "2026-09-26T11:10:00.000Z",
-    "caption": "Hoodie + brown duck chore jacket, collar up. #ad #FleekDropQuest", "price_pence": 8500,
+    "id": 1,
+    "drop_id": 1,
+    "attempt_id": 2,
+    "status": "held",
+    "expires_at": "2026-09-26T11:10:00.000Z",
+    "caption": "Oat matcha, a trench, and a Birkin 25 in gold. #ad #FleekDropQuest",
+    "price_pence": 1850000,
     "video_url": "/uploads/sample.webm"
   },
   "error": null

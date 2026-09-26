@@ -14,6 +14,9 @@
 
 ## Global Constraints
 
+- **Visual design is `C3 — Clean girl matcha`** (reference: `/Users/richardlao/Documents/GitHub/personal/dropquest-mock-c/web/public/mockup-v3.html`). It overrides the CSS and markup styling in the tasks below; keep the element ids, screens, behaviour and tests exactly as written.
+- Product images are inline-drawn SVGs in `web/public/img/`: `birkin.svg`, `baguette.svg`, `flats.svg` (referenced by the fixtures). UI shows "Demo listing — not affiliated with the brand." on the drop sheet.
+
 - Only `web/` changes on this branch. `contracts/`, `docs/`, `.claude/memory.md` change only on `main`.
 - Call only routes in `contracts/README.md`; read only fields shown in `contracts/fixtures/`.
 - Any text from the model, the user or the API goes in via `textContent`, never `innerHTML`.
@@ -38,7 +41,7 @@
 
 **Files:**
 - Create: `web/public/index.html`, `web/public/style.css`, `web/public/app.js`, `web/integration.test.ts`
-- Existing (scaffold, do not rewrite): `web/dev.ts`, `web/package.json`, `web/public/img/jacket.svg`
+- Existing (scaffold, do not rewrite): `web/dev.ts`, `web/package.json`, `web/public/img/jacket.svg` (unused now; create `birkin.svg`, `baguette.svg`, `flats.svg` in this task)
 
 **Interfaces:**
 - Consumes: `GET /api/drops`, `GET /api/drops/:id/state` (see contract).
@@ -83,7 +86,7 @@ test("index has every screen, Leaflet and app.js", async () => {
 });
 
 test("static assets are served", async () => {
-  for (const path of ["/app.js", "/style.css", "/img/jacket.svg"]) expect((await fetch(base + path)).status).toBe(200);
+  for (const path of ["/app.js", "/style.css", "/img/birkin.svg", "/img/baguette.svg", "/img/flats.svg"]) expect((await fetch(base + path)).status).toBe(200);
   expect((await fetch(`${base}/nope.js`)).status).toBe(404);
 });
 
@@ -186,7 +189,7 @@ Expected: FAIL on "index has every screen" (404, no `index.html`).
 
   <section id="s-buy" class="screen" hidden>
     <p class="timer">Early access ends in <span id="b-timer"></span></p>
-    <img class="product" src="/img/jacket.svg" alt="">
+    <img class="product" src="/img/birkin.svg" alt="">
     <h1 id="b-title"></h1>
     <p id="b-price" class="price"></p>
     <button id="b-buy" class="cta">Buy now (simulated checkout)</button>
@@ -828,7 +831,7 @@ test("dashboard page and data are served", async () => {
 </head>
 <body>
 <main id="dash">
-  <header class="bar"><strong>DropQuest</strong><span class="by">Fleek merchant view · Reworked Chore Jacket</span><span id="updated" class="by" style="margin-left:auto"></span></header>
+  <header class="bar"><strong>DropQuest</strong><span class="by">Fleek merchant view · Birkin 25 drop</span><span id="updated" class="by" style="margin-left:auto"></span></header>
   <h2>Stock</h2><div id="stock" class="tiles"></div>
   <h2>Funnel</h2><div id="funnel" class="tiles"></div>
   <h2>Grok and backend actions</h2><table><tbody id="events"></tbody></table>
@@ -938,12 +941,12 @@ try {
     await Bun.sleep(100);
   }
   const { drops } = await (await fetch(`${base}/api/drops`)).json();
-  check("drops via proxy", drops[0].available === 3);
+  check("drops via proxy", drops[0].available === 3 && drops[0].title.includes("Birkin"));
 
   const f = new FormData();
   f.set("video", new File([new Uint8Array(2000)], "clip.webm", { type: "video/webm" }));
   f.set("frame0", new File([new Uint8Array(10)], "frame0.jpg", { type: "image/jpeg" }));
-  f.set("transcript", "Grey hoodie, I'd wear it open with the corduroy collar up.");
+  f.set("transcript", "Beige trench, I'd carry it on my arm to show the gold hardware.");
   f.set("duration_ms", "15000");
   f.set("debug", "1");
   const body = await (await fetch(`${base}/api/drops/1/attempts`, { method: "POST", body: f })).json();
