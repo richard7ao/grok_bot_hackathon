@@ -147,7 +147,18 @@ const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numer
 
 // Map: MapLibre GL with the keyless OpenFreeMap Positron style.
 const COBALT = "#1B5CFF";
-const map = new maplibregl.Map({ container: "map", style: "https://tiles.openfreemap.org/styles/positron", center: [-0.1, 51.515], zoom: 12, attributionControl: { compact: true } });
+const map = new maplibregl.Map({
+  container: "map",
+  style: "https://tiles.openfreemap.org/styles/positron",
+  center: [-0.1, 51.515],
+  zoom: 10.5,
+  minZoom: 9,
+  maxBounds: [[-0.85, 51.2], [0.6, 51.8]], // loosely Greater London
+  attributionControl: { compact: true },
+});
+const mapLoaded = new Promise((r) => map.once("load", r));
+// Far out, show product images only (no price chips).
+map.on("zoom", () => map.getContainer().classList.toggle("far", map.getZoom() < 12));
 // "You" avatar: at your real position once located, otherwise approximately central London.
 const APPROX_POS = { lat: 51.5145, lng: -0.127 };
 const youLabel = el("span", "", "You (approx.)");
@@ -165,11 +176,53 @@ function pinEl(drop) {
   return b;
 }
 
-function drawDrops() {
-  st.drops.forEach((d) => new maplibregl.Marker({ element: pinEl(d), anchor: "bottom" }).setLngLat([d.lng, d.lat]).addTo(map));
-  fitMap();
+// Clustered drops: a GeoJSON source does the clustering; each visible cluster/point gets a cached HTML marker.
+const dropById = (id) => st.drops.find((d) => d.id === id);
+function clusterEl({ cluster_id, point_count, live }, lngLat) {
+  const b = el("button", `cluster${live ? " live" : ""}`);
+  b.setAttribute("aria-label", `${point_count} drops`);
+  const stack = el("span", "stack");
+  const more = point_count > 3 ? [el("b", "", `+${point_count - 3}`)] : [];
+  b.append(stack);
+  const src = map.getSource("drops");
+  src.getClusterLeaves(cluster_id, 3, 0).then((leaves) => stack.replaceChildren(...leaves.map((l) => img(dropById(l.properties.id)?.image_url ?? "")), ...more));
+  b.onclick = async () => map.easeTo({ center: lngLat, zoom: await src.getClusterExpansionZoom(cluster_id) });
+  return b;
+}
+
+let markers = new Map(); // "c<cluster_id>" | "d<drop id>" -> Marker
+function syncMarkers() {
+  if (!map.getSource("drops") || !map.isSourceLoaded("drops")) return;
+  const next = new Map();
+  for (const f of map.querySourceFeatures("drops")) {
+    const p = f.properties;
+    const key = p.cluster ? `c${p.cluster_id}` : `d${p.id}`;
+    if (next.has(key)) continue;
+    let m = markers.get(key);
+    if (!m) {
+      const drop = p.cluster ? null : dropById(p.id);
+      if (!p.cluster && !drop) continue;
+      const lngLat = drop ? [drop.lng, drop.lat] : f.geometry.coordinates; // tile geometry is quantised; pins use exact coords
+      m = new maplibregl.Marker({ element: p.cluster ? clusterEl(p, lngLat) : pinEl(drop), anchor: "bottom" }).setLngLat(lngLat).addTo(map);
+    }
+    next.set(key, m);
+  }
+  markers.forEach((m, k) => next.has(k) || m.remove());
+  markers = next;
+}
+
+async function drawDrops() {
+  const data = {
+    type: "FeatureCollection",
+    features: st.drops.map((d) => ({ type: "Feature", geometry: { type: "Point", coordinates: [d.lng, d.lat] }, properties: { id: d.id, live: d.status === "live" ? 1 : 0 } })),
+  };
   renderNear();
   renderTicker();
+  await mapLoaded;
+  map.addSource("drops", { type: "geojson", data, cluster: true, clusterRadius: 48, clusterMaxZoom: 14, clusterProperties: { live: ["+", ["get", "live"]] } });
+  map.addLayer({ id: "drops-hidden", type: "circle", source: "drops", paint: { "circle-radius": 0, "circle-opacity": 0 } }); // keeps source tiles loaded for querySourceFeatures
+  map.on("render", syncMarkers);
+  fitMap(0);
 }
 
 // Magic UI "Marquee": live drops, then coming soon, as a seamless loop (two copies, track slides -50%).
@@ -198,13 +251,15 @@ function renderNear() {
   );
 }
 
-// Fit the map to every drop plus the "you" avatar.
-function fitMap() {
+// Fit the map to every drop across London, clear of the bottom sheet.
+function fitMap(duration = 600) {
   const bounds = new maplibregl.LngLatBounds();
   st.drops.forEach((d) => bounds.extend([d.lng, d.lat]));
-  bounds.extend(youMarker.getLngLat());
-  map.fitBounds(bounds, { padding: { top: 80, bottom: 260, left: 40, right: 40 }, maxZoom: 15, duration: 0 });
+  const sheet = $("#s-map .sheet").offsetHeight || 240;
+  map.fitBounds(bounds, { padding: { top: 70, bottom: sheet + 24, left: 36, right: 36 }, maxZoom: 15, duration });
 }
+$("#map-all").onclick = () => fitMap();
+$("#map-me").onclick = () => map.flyTo({ center: youMarker.getLngLat(), zoom: 14 });
 
 async function refreshDrops() {
   st.drops = (await api("/api/drops")).drops;
@@ -240,10 +295,8 @@ async function boot() {
 navigator.geolocation?.watchPosition(
   (p) => {
     st.pos = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy };
-    const first = youLabel.textContent !== "You";
-    youMarker.setLngLat([st.pos.lng, st.pos.lat]);
+    youMarker.setLngLat([st.pos.lng, st.pos.lat]); // no auto-zoom: keep the London-wide view
     youLabel.textContent = "You";
-    if (first && st.drops.length) fitMap();
     $("#loc-status").textContent = `Located (±${Math.round(st.pos.acc)} m). Tap a drop to see it.`;
     renderNear();
     if (st.drop && !$("#s-drop").hidden) renderDrop();
