@@ -113,7 +113,7 @@ test("record and preview screens carry the Reels camera controls", async () => {
   const html = await (await fetch(`${base}/`)).text();
   const ids = ["r-live", "r-go", "r-stop", "r-clock", "r-note", "r-prompt", "r-close", "r-shutter", "r-flip", "r-timer", "r-hints", "r-guide", "r-guides", "r-captions", "r-count", "r-blocked", "r-retry", "r-fill1", "r-fill2", "r-chip-outfit", "r-chip-styling", "r-chip-detail", "p-video", "p-transcript", "p-submit", "p-retake", "p-back", "p-dur", "p-chip-outfit", "p-chip-styling", "p-chip-detail"];
   for (const id of ids) expect(html).toContain(`id="${id}"`);
-  expect(html).toContain("Hints only — Grok makes the call.");
+  expect(html).toContain("Hints only — the AI makes the call.");
 });
 
 // Interim results drive captions/chips only; the clip limits must match the contract (10–20 s).
@@ -162,7 +162,7 @@ test("record screen burns the product sticker into the recording and frames", as
   const js = await (await fetch(`${base}/app.js`)).text();
   expect(js).toContain('$("#r-canvas").captureStream(30)'); // recorder gets the composited canvas, not the raw camera
   expect(js).toMatch(/function drawSticker[\s\S]*drawImage\(im,/);
-  expect(js).toMatch(/function grabFrame\(\) \{\s*const v = \$\("#r-canvas"\)/); // Grok's frames include the sticker
+  expect(js).toMatch(/function grabFrame\(\) \{\s*const v = \$\("#r-canvas"\)/); // The AI's frames include the sticker
 });
 
 test("customer app uses real product photos, not the SVG placeholders", async () => {

@@ -314,7 +314,7 @@ const fmtClock = (ms) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
-// Rubric hint chips: a UX nudge from the live transcript, not validation (Grok decides).
+// Rubric hint chips: a UX nudge from the live transcript, not validation (the AI decides).
 const HINTS = {
   outfit: /\b(wearing|outfit|top|shirt|tee|jeans|trousers|hoodie|jacket|coat|trench|dress|skirt|trainers|sneakers|boots)\b/,
   styling: /\b(style|styled|styling|wear|pair|paired|pairing|carry|carrying|with)\b/,
@@ -364,7 +364,7 @@ async function startCamera() {
   loadSticker();
   startCompositor();
   $("#r-go").disabled = false;
-  $("#r-note").textContent = SpeechRec ? "Speak clearly: Grok reads what you say." : "Speech capture needs Chrome. Grok will only see frames.";
+  $("#r-note").textContent = SpeechRec ? "Speak clearly: the AI reads what you say." : "Speech capture needs Chrome. The AI will only see frames.";
 }
 
 function stopCamera() {
@@ -593,7 +593,7 @@ sticker.onwheel = (e) => {
   placeSticker();
 };
 
-// Frames for Grok come from the composited canvas, so the reviewer sees the sticker too.
+// Frames for the AI come from the composited canvas, so the reviewer sees the sticker too.
 function grabFrame() {
   const v = $("#r-canvas");
   if (!$("#r-live").videoWidth) return;
@@ -634,7 +634,7 @@ $("#p-submit").onclick = async () => {
   f.set("duration_ms", String(c.durationMs));
   show("s-review");
   $("#rv-stage").textContent = "Uploading your clip…";
-  const stage = setTimeout(() => ($("#rv-stage").textContent = "Sending it to Grok…"), 1200);
+  const stage = setTimeout(() => ($("#rv-stage").textContent = "Sending it to the stylist…"), 1200);
   let body;
   try {
     body = await api(`/api/drops/${st.drop.id}/attempts`, { method: "POST", body: f });
@@ -710,7 +710,7 @@ function showResult(body, err) {
     return confetti($("#s-share .ring-wrap"));
   }
   $("#s-result").classList.remove("expired");
-  $("#res-title").textContent = err ? "Couldn't submit" : a.verdict === "pass" ? "Qualified, but the allocation is full" : a.verdict === "error" ? "Grok is unavailable" : "Almost there";
+  $("#res-title").textContent = err ? "Couldn't submit" : a.verdict === "pass" ? "Qualified, but the allocation is full" : a.verdict === "error" ? "The AI reviewer is unavailable" : "Almost there";
   $("#res-feedback").textContent = err ? err.message : body.error === "ALREADY_RESERVED" ? "You already hold this drop." : a.feedback;
   $("#res-criteria").replaceChildren(...(a?.criteria ?? []).map((c) => li(`${ruleLabel(c.id)}: ${c.evidence}`, c.result)));
   const canRetry = st.attemptsLeft !== 0 && (err ? !NO_RETRY.includes(err.code) : a.verdict !== "pass");

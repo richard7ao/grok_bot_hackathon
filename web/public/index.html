@@ -40,8 +40,8 @@
       <div id="d-hold" class="hold-row" hidden><span class="pill sage">Held for you · <b id="d-hold-time" class="tnum"></b> left</span><button id="d-continue" class="cta">Continue</button></div>
       <div class="prompt"><h2>Your challenge</h2><p id="d-prompt"></p></div>
       <h2>Drop card</h2><ul id="d-facts" class="chips"></ul>
-      <h2>Grok checks for</h2><ul id="d-rubric" class="checks"></ul>
-      <p class="rules">Pass Grok's review to hold one item for 10 minutes. Post your clip to Instagram to unlock early access at the listed price. Stock is limited, so qualifying does not guarantee a unit.</p>
+      <h2>The AI checks for</h2><ul id="d-rubric" class="checks"></ul>
+      <p class="rules">Pass the AI review to hold one item for 10 minutes. Post your clip to Instagram to unlock early access at the listed price. Stock is limited, so qualifying does not guarantee a unit.</p>
       <p class="small">Demo listing — not affiliated with the brand.</p>
       <button id="d-start" class="cta shine">Start challenge</button>
       <p id="d-why" class="hint center"></p>
@@ -70,7 +70,7 @@
         <ul class="rchips">
           <li id="r-chip-outfit" data-chip="outfit">Outfit</li><li id="r-chip-styling" data-chip="styling">Styling</li><li id="r-chip-detail" data-chip="detail">Drop-card detail</li>
         </ul>
-        <p class="chip-note">Hints only — Grok makes the call.</p>
+        <p class="chip-note">Hints only — the AI makes the call.</p>
       </div>
     </div>
     <div class="rail">
@@ -112,7 +112,7 @@
     </div>
     <div class="take-sheet">
       <div class="handle"></div>
-      <p class="heard">Grok will hear:</p>
+      <p class="heard">The AI will hear:</p>
       <p id="p-transcript" class="said"></p>
       <ul class="rchips light">
         <li id="p-chip-outfit" data-chip="outfit">Outfit</li><li id="p-chip-styling" data-chip="styling">Styling</li><li id="p-chip-detail" data-chip="detail">Drop-card detail</li>
@@ -123,20 +123,20 @@
   </section>
 
   <section id="s-review" class="screen" hidden>
-    <div class="dmhead"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">typing…</div></div></div>
+    <div class="dmhead"><div class="avatar">AI</div><div><strong>HotDrop Stylist</strong><div class="small">typing…</div></div></div>
     <div class="spinner" aria-hidden="true"></div>
     <p id="rv-stage" role="status">Uploading your clip…</p>
   </section>
 
   <section id="s-wait" class="screen" hidden>
-    <!-- Honest by design: Grok's review has already run on the server and its verdict is stored
+    <!-- Honest by design: the AI review has already run on the server and its verdict is stored
          in this browser (st.pending + localStorage dq_pending). Only the reveal waits REVIEW_WAIT_MS;
          the queue number and stage labels are presentational. "Fast-forward" reveals it now. -->
     <p class="wait-note">Reviewing — you can leave, we'll keep your spot</p>
-    <div class="dmhead"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">reviewing your take…</div></div></div>
+    <div class="dmhead"><div class="avatar">AI</div><div><strong>HotDrop Stylist</strong><div class="small">reviewing your take…</div></div></div>
     <div class="mytake"><img id="w-thumb" alt="Your clip"><span id="w-len">▶ my take</span></div>
     <div class="bubble">
-      <span class="disp big">Grok is reviewing your take</span>
+      <span class="disp big">Your stylist is reviewing your take</span>
       <p id="w-stage" role="status">Watching your clip…</p>
       <span class="typing" aria-hidden="true"><i></i><i></i><i></i></span>
     </div>
@@ -145,13 +145,13 @@
       <div class="track"><i id="w-bar"></i></div>
       <p class="small">Reviews take about a minute. You can keep this tab open.</p>
     </div>
-    <p id="w-held" class="pill sage held" hidden>Your spot is being held while Grok reviews</p>
+    <p id="w-held" class="pill sage held" hidden>Your spot is being held while it's reviewed</p>
     <button id="w-skip" class="cta ghost demo">⏩ Fast-forward review (demo)</button>
   </section>
 
   <section id="s-result" class="screen" hidden>
     <button class="back-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <div class="dmhead dm-only"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">reviewed your take · just now</div></div></div>
+    <div class="dmhead dm-only"><div class="avatar">AI</div><div><strong>HotDrop Stylist</strong><div class="small">reviewed your take · just now</div></div></div>
     <div class="bubble dm-only">
       <h1 id="res-title" class="disp"></h1>
       <p id="res-feedback"></p>
@@ -176,7 +176,7 @@
 
   <section id="s-share" class="screen tint" hidden>
     <button class="back-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <p class="eyebrow">Passed · Grok approved</p>
+    <p class="eyebrow">Passed · AI approved</p>
     <h1>Post your Reel to unlock</h1>
     <div class="held-row">
       <div class="ring-wrap">

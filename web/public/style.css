@@ -197,7 +197,7 @@ a { color: var(--ink); font-weight: 600; }
   .shutter, .shutter .core, .rprog b, .rchips li { transition: none; }
 }
 
-/* Grok DM */
+/* AI stylist DM */
 .dmhead { display: flex; align-items: center; gap: 12px; padding: 4px 0 12px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
 .avatar { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 800 17px "Inter Tight", sans-serif; color: #fff; background: var(--ink); }
 .bubble { background: var(--surface); border-radius: 20px 20px 20px 6px; padding: 14px 16px; margin: 0 32px 12px 0; font-size: 14px; }

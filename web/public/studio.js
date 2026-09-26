@@ -13,7 +13,7 @@ const RUBRIC = [
   { id: "suitable", label: "Keep it relevant and suitable" },
 ];
 const EVENT_LABELS = {
-  reviewed: "Grok reviewed an attempt",
+  reviewed: "AI reviewed an attempt",
   hold_claimed: "Hold claimed",
   posted: "Instagram post confirmed",
   purchased: "Purchased",
@@ -273,7 +273,7 @@ function renderDetail({ campaign: c, stats: s, reviews, events }) {
     }),
   );
 
-  const steps = [["Attempts", s.attempts], ["Passed Grok", s.passed], ["Hold claimed", s.held], ["Posted", s.posted], ["Sold", s.sold]];
+  const steps = [["Attempts", s.attempts], ["Passed review", s.passed], ["Hold claimed", s.held], ["Posted", s.posted], ["Sold", s.sold]];
   $("funnel").replaceChildren(
     ...steps.map(([k, v], i) => {
       const row = el("div", "f-row");
@@ -330,7 +330,7 @@ function review(r) {
 }
 
 function eventLabel({ type, detail = {} }) {
-  if (type === "reviewed") return `Grok reviewed attempt ${detail.attempt_id ?? ""}${detail.verdict ? ` — ${detail.verdict}` : ""}`;
+  if (type === "reviewed") return `AI reviewed attempt ${detail.attempt_id ?? ""}${detail.verdict ? ` — ${detail.verdict}` : ""}`;
   const base = EVENT_LABELS[type] || String(type).replaceAll("_", " ").replace(/^./, (m) => m.toUpperCase());
   return detail.reservation_id ? `${base} · reservation ${detail.reservation_id}` : base;
 }
@@ -551,7 +551,7 @@ function validate(c) {
     [!(Number.isFinite(c.radius_m) && c.radius_m > 0), "f-radius", "Radius must be more than 0 m"],
     [!c.prompt, "f-prompt", "Challenge prompt is required"],
     [c.facts.length === 0, "fact-input", "Add at least one drop-card fact"],
-    [c.rubric.some((r) => !r.label), "rubric-list", "Every Grok check needs a label"],
+    [c.rubric.some((r) => !r.label), "rubric-list", "Every AI check needs a label"],
   ];
   const hit = checks.find(([bad]) => bad);
   return hit ? { field: hit[1], message: hit[2] } : null;

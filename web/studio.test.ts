@@ -50,7 +50,7 @@ test("mock detail has campaign, stats, reviews and events", async () => {
   expect(d.events.length).toBeGreaterThan(0);
 });
 
-test("AI draft returns the four fixed Grok check ids", async () => {
+test("AI draft returns the four fixed AI check ids", async () => {
   const d = await (await post("/api/campaigns/draft", { brand: "Chanel", title: "Classic Flap", description: "Pre-loved" })).json();
   expect(d.rubric.map((r: { id: string }) => r.id)).toEqual(["outfit", "styling_idea", "product_detail", "suitable"]);
   expect(d.prompt.length).toBeGreaterThan(0);
