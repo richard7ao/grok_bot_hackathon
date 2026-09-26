@@ -47,8 +47,8 @@
   .masthead .tag{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
 
   /* Hero: split, phone as hero */
-  .hero-b{display:grid;gap:32px;grid-template-columns:minmax(0,1fr);padding:40px 0 48px;align-items:start;}
-  @media (min-width:900px){ .hero-b{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:56px;padding:56px 0 64px;} }
+  .hero-b{display:grid;gap:32px;grid-template-columns:minmax(0,1fr);padding-block:40px 48px;align-items:start;}
+  @media (min-width:900px){ .hero-b{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:56px;padding-block:56px 64px;} }
 
   .display{
     font-family:"Inter Tight",Inter,sans-serif;font-weight:800;letter-spacing:-.03em;line-height:1.03;
@@ -118,7 +118,7 @@
   @media (min-width:900px){ .beats-b{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;} }
 
   /* Merchant side: wide browser frame + editorial captions */
-  .merchant{border-top:1px solid var(--line);padding:48px 0 72px;}
+  .merchant{border-top:1px solid var(--line);padding-block:48px 72px;}
   .browser-frame.wide{width:280px;max-width:100%;margin:24px 0 32px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#fff;}
   .browser-frame.wide .browser-chrome{display:flex;align-items:center;gap:6px;padding:9px 10px;background:#E9E9E9;border-bottom:1px solid var(--line);}
   .browser-frame.wide .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
@@ -136,7 +136,7 @@
   @media (min-width:900px){ .merchant-captions{grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;} }
 
   /* Live now */
-  .live{border-top:1px solid var(--line);padding:48px 0 72px;}
+  .live{border-top:1px solid var(--line);padding-block:48px 72px;}
   .live-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
   .live-head .eyebrow{margin:0;}
   .live-count{margin:0;font-size:13px;color:var(--muted);}
@@ -160,7 +160,29 @@
   @media (min-width:640px){ footer{padding:32px 32px 56px;} }
   .fine{font-size:12px;color:var(--muted);max-width:640px;margin:0 0 8px;}
 
+  /* Darwin-inspired motion: marker sweep, live pulse, rotating takes, tilt that settles */
+  .mark{position:relative;z-index:0;}
+  .mark::before{content:"";position:absolute;z-index:-1;left:-.06em;right:-.06em;bottom:.06em;height:.46em;border-radius:.12em;background:var(--cobalt-soft);transform:scaleX(0);transform-origin:left;animation:sweep .8s cubic-bezier(.2,.8,.2,1) .35s forwards;}
+  @keyframes sweep{to{transform:scaleX(1);}}
+  .badge.live i,.live-dot{animation:live-ring 1.8s ease-out infinite;}
+  @keyframes live-ring{0%{box-shadow:0 0 0 0 rgba(27,92,255,.5);}100%{box-shadow:0 0 0 7px rgba(27,92,255,0);}}
+  .takes{margin:28px auto 0;max-width:340px;}
+  .takes-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 10px;}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--cobalt);}
+  .takes-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
+  .takes-list li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:8px 12px;border-radius:12px;background:var(--surface);opacity:.55;transform:scale(.97);transition:opacity .35s cubic-bezier(.2,.8,.2,1),transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s cubic-bezier(.2,.8,.2,1),background-color .35s;}
+  .takes-list li.spot{opacity:1;transform:none;background:#fff;box-shadow:0 10px 24px rgba(17,17,17,.12);}
+  .takes-list img{width:34px;height:34px;border-radius:8px;object-fit:cover;}
+  .takes-list span{font-size:12.5px;color:var(--muted);line-height:1.3;min-width:0;}
+  .takes-list b{display:block;color:var(--ink);font-size:13px;}
+  .takes-list em{font:800 18px "Inter Tight",sans-serif;font-style:normal;}
+  .merchant{perspective:1400px;}
+  .browser-frame.wide{transform-origin:50% 100%;transition:transform 1s cubic-bezier(.2,.8,.2,1),box-shadow 1s;}
+  .js .browser-frame.wide:not(.flat){transform:rotateX(18deg) scale(.94);box-shadow:0 40px 60px -40px rgba(17,17,17,.4);}
+
   @media (prefers-reduced-motion: reduce){
+    .mark::before{animation:none;transform:none;}
+    .js .browser-frame.wide:not(.flat){transform:none;}
     *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important;}
   }
 </style>
@@ -175,8 +197,8 @@
   <section class="hero-b wrap">
     <div class="hero-text">
       <p class="eyebrow">Live drop · pre-loved</p>
-      <h1 class="display">Wear it before<br>it's gone.</h1>
-      <p class="dek">HotDrop turns scarce resale stock into a location-based quest — walk to the pin, film your take, and let an AI stylist unlock the buy.</p>
+      <h1 class="display">Wear it before<br><span class="mark">it's gone.</span></h1>
+      <p class="dek">HotDrop turns scarce resale stock into a location-based quest — walk to the pin, film your take, and let your stylist unlock the buy.</p>
 
       <div class="path-b">
         <div class="step-block" id="step1block">
@@ -188,7 +210,7 @@
             <span class="state-badge start" id="badge1">Start here</span>
             <span class="state-tick" id="tick1" hidden>✓ Done</span>
           </div>
-          <p class="step-copy">Opens the shopper app in a phone-sized window — find the live pin, film a styling take, and get the AI stylist's verdict.</p>
+          <p class="step-copy">Opens the shopper app in a phone-sized window — find the live pin, film a styling take, and get your stylist's verdict.</p>
         </div>
 
         <div class="connector" aria-hidden="true"><span>then</span></div>
@@ -201,7 +223,7 @@
             </a>
             <span class="state-badge next" id="badge2" hidden>Next</span>
           </div>
-          <p class="step-copy">Opens HotDrop Studio — watch campaigns, every AI-reviewed entry, and live stock update in real time.</p>
+          <p class="step-copy">Opens HotDrop Studio — watch campaigns, every scored take, and live stock update in real time.</p>
         </div>
 
         <button type="button" id="reset" class="reset-btn" hidden>Start over</button>
@@ -220,11 +242,20 @@
         </figcaption>
       </figure>
 
+      <div class="takes" aria-label="Recent takes (sample)">
+        <p class="takes-head"><i class="live-dot" aria-hidden="true"></i>Latest takes</p>
+        <ul class="takes-list" id="takes">
+          <li class="spot"><img src="/img/photos/birkin.jpg" alt=""><span><b>@maya.fits</b>Birkin 25 — held</span><em>91</em></li>
+          <li><img src="/img/photos/xt6.jpg" alt=""><span><b>@j0nny</b>Salomon XT-6</span><em>78</em></li>
+          <li><img src="/img/photos/stoneisland.jpg" alt=""><span><b>@kwame</b>Stone Island — held</span><em>88</em></li>
+        </ul>
+      </div>
+
       <h2 class="eyebrow beats-heading">How a drop works</h2>
       <ol class="beats-b">
         <li><span class="beat-num">01</span><h3>Walk to the pin</h3><p>Get within 150 m of the pin on the map and the drop unlocks.</p></li>
         <li><span class="beat-num">02</span><h3>Film 10–20 s</h3><p>Show your outfit and how you'd style the piece, on camera.</p></li>
-        <li><span class="beat-num">03</span><h3>AI review</h3><p>An AI stylist checks your take against a short rubric — three tries per drop.</p></li>
+        <li><span class="beat-num">03</span><h3>Get scored</h3><p>Your stylist checks your take against a short rubric — three tries per drop.</p></li>
         <li><span class="beat-num">04</span><h3>Hold, post, buy</h3><p>Pass and hold the item for 10 minutes — post the Reel, then buy.</p></li>
       </ol>
     </div>
@@ -245,7 +276,7 @@
     </div>
     <ul class="merchant-captions">
       <li><span class="cap-eyebrow">Campaigns</span><p>Create and run drops from one dashboard.</p></li>
-      <li><span class="cap-eyebrow">Reviews</span><p>Every entry, and the AI stylist's verdict against the rubric.</p></li>
+      <li><span class="cap-eyebrow">Reviews</span><p>Every take, and the stylist's score against the rubric.</p></li>
       <li><span class="cap-eyebrow">Analytics</span><p>Live stock — held, posted, sold, available — and the funnel.</p></li>
     </ul>
     <a class="step-cta ghost" href="/desktop" target="_blank" rel="noopener">
@@ -365,6 +396,23 @@
     try { sessionStorage.removeItem(KEY); } catch (e) {}
     applyState(false);
   });
+
+  // Darwin-style spotlight: one sample take lifts at a time; the Studio frame settles flat in view.
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const takes = document.querySelectorAll('#takes li');
+  let spot = 0;
+  if (!reduced) setInterval(() => {
+    if (document.hidden) return;
+    spot = (spot + 1) % takes.length;
+    takes.forEach((li, i) => li.classList.toggle('spot', i === spot));
+  }, 2200);
+  const frame = document.querySelector('.browser-frame.wide');
+  if (frame && 'IntersectionObserver' in window) {
+    document.documentElement.classList.add('js');
+    new IntersectionObserver((es, io) => es.forEach((e) => {
+      if (e.isIntersecting) { frame.classList.add('flat'); io.disconnect(); }
+    }), { threshold: 0.25 }).observe(frame);
+  }
 
   // Live touch: the page already shows real (if static) numbers, so a failed fetch just
   // leaves them as-is — it should never look broken.

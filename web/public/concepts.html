@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HotDrop motion concepts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@700;800&display=swap">
+<style>
+  :root{--ink:#111;--muted:#6B6B6B;--surface:#F2F2F2;--line:rgba(0,0,0,.1);--cobalt:#1B5CFF;--cobalt-soft:#DCE6FF;--ease:cubic-bezier(.2,.8,.2,1);}
+  *{box-sizing:border-box;}
+  body{margin:0;background:#fff;color:var(--ink);font:400 16px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px;}
+  header.top{padding:40px 0 8px;}
+  h1.page{font:800 clamp(2rem,3vw + 1rem,3.2rem)/1.05 "Inter Tight",sans-serif;letter-spacing:-.03em;margin:0 0 10px;}
+  .lede{color:var(--muted);max-width:60ch;margin:0;}
+  .demo{display:grid;gap:24px;grid-template-columns:minmax(0,1fr);border-top:1px solid var(--line);padding:40px 0;}
+  @media (min-width:880px){.demo{grid-template-columns:300px minmax(0,1fr);gap:40px;}}
+  .meta h2{font:800 22px/1.15 "Inter Tight",sans-serif;letter-spacing:-.02em;margin:0 0 12px;}
+  .meta dl{margin:0;display:grid;gap:10px;font-size:14px;}
+  .meta dt{font-weight:700;}
+  .meta dd{margin:0;color:var(--muted);}
+  .stage{background:var(--surface);border-radius:20px;min-height:280px;padding:28px;position:relative;overflow:hidden;display:grid;place-items:center;}
+  .replay{position:absolute;top:14px;right:14px;border:0;background:#fff;border-radius:999px;padding:7px 14px;font:600 13px Inter,sans-serif;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.12);}
+  :focus-visible{outline:2px solid var(--cobalt);outline-offset:3px;}
+
+  /* 1 Marker sweep */
+  .mk-h{font:800 clamp(2rem,4vw + 1rem,4rem)/1.04 "Inter Tight",sans-serif;letter-spacing:-.03em;margin:0;text-align:left;}
+  .mark{position:relative;white-space:nowrap;z-index:0;}
+  .mark::before{content:"";position:absolute;z-index:-1;left:-.08em;right:-.08em;bottom:.04em;height:.5em;border-radius:.14em;background:var(--cobalt-soft);transform:scaleX(0);transform-origin:left;}
+  .mark.on::before{animation:sweep .7s var(--ease) .25s forwards;}
+  @keyframes sweep{to{transform:scaleX(1);}}
+
+  /* 2 Live takes feed */
+  .feed{list-style:none;margin:0;padding:0;width:min(420px,100%);display:grid;gap:8px;}
+  .feed li{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;background:#fff;border-radius:14px;padding:10px 14px;opacity:.5;transform:scale(.97);transition:transform .35s var(--ease),opacity .35s var(--ease),box-shadow .35s var(--ease);}
+  .feed li.spot{opacity:1;transform:scale(1.02);box-shadow:0 12px 28px rgba(17,17,17,.12);}
+  .feed img{width:40px;height:40px;border-radius:10px;object-fit:cover;}
+  .feed b{display:block;font-size:14px;} .feed span{font-size:12.5px;color:var(--muted);}
+  .feed em{font:800 18px "Inter Tight",sans-serif;font-style:normal;}
+  .feed .held em{color:var(--cobalt);}
+
+  /* 3 Pulse pin */
+  .map-mock{width:100%;height:240px;border-radius:14px;background:
+    linear-gradient(90deg,transparent 48%,#fff 48% 52%,transparent 52%) 0 0/120px 120px,
+    linear-gradient(0deg,transparent 48%,#fff 48% 52%,transparent 52%) 0 0/120px 120px,#E7E9EE;position:relative;}
+  .pin{position:absolute;width:52px;height:52px;border-radius:50%;border:3px solid #fff;background:center/cover;box-shadow:0 6px 14px rgba(0,0,0,.2);cursor:pointer;}
+  .pin.live::after{content:"";position:absolute;inset:-3px;border-radius:50%;animation:ring 1.8s ease-out infinite;}
+  @keyframes ring{0%{box-shadow:0 0 0 0 rgba(27,92,255,.55);}100%{box-shadow:0 0 0 18px rgba(27,92,255,0);}}
+  .pin .n{position:absolute;right:-8px;top:-8px;background:var(--cobalt);color:#fff;font:700 11px Inter;border-radius:999px;padding:2px 7px;}
+  .pin.sold{filter:grayscale(1);opacity:.6;}
+
+  /* 4 Stylist is looking */
+  .look{text-align:center;}
+  .avatar{width:72px;height:72px;margin:0 auto 14px;border-radius:22px;background:var(--ink);display:grid;place-items:center;animation:bob 2.6s ease-in-out infinite;}
+  .eyes{display:flex;gap:10px;} .eyes i{width:9px;height:14px;border-radius:5px;background:#fff;animation:blink 4.4s ease-in-out infinite;}
+  @keyframes bob{50%{transform:translateY(-5px);}}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1);}95%{transform:scaleY(.1);}}
+  .dots{display:inline-flex;gap:4px;margin-left:6px;vertical-align:middle;}
+  .dots i{width:6px;height:6px;border-radius:50%;background:var(--ink);animation:dot 1.2s ease-in-out infinite;}
+  .dots i:nth-child(2){animation-delay:.15s;} .dots i:nth-child(3){animation-delay:.3s;}
+  @keyframes dot{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:1;transform:translateY(-3px);}}
+  .look p{margin:0;font-weight:600;}
+  .look .sc{font:800 64px/1 "Inter Tight",sans-serif;letter-spacing:-.05em;margin-top:8px;min-height:64px;}
+
+  /* 5 Break-through word */
+  .bt{position:relative;display:grid;place-items:center;width:100%;perspective:900px;}
+  .bt .word{font:800 clamp(5rem,16vw,11rem)/.85 "Inter Tight",sans-serif;letter-spacing:-.06em;margin:0;user-select:none;}
+  .bt img{position:absolute;width:clamp(140px,26vw,230px);aspect-ratio:4/5;object-fit:cover;border-radius:16px;border:5px solid #fff;box-shadow:0 30px 50px -18px rgba(17,17,17,.45);transform:rotate(-6deg);transition:transform .2s ease-out;}
+
+  /* 6 Tilt-to-flat frame */
+  .tilt-stage{perspective:1200px;}
+  .slab{width:min(560px,100%);background:#fff;border-radius:16px;box-shadow:0 30px 60px -30px rgba(17,17,17,.35);padding:14px;transform:rotateX(22deg) scale(.92);transform-origin:50% 100%;transition:transform 1s var(--ease);}
+  .slab.flat{transform:none;}
+  .slab .chrome{display:flex;gap:6px;margin-bottom:10px;} .slab .chrome i{width:9px;height:9px;border-radius:50%;background:#D9D9D9;}
+  .slab .rows{display:grid;gap:8px;}
+  .slab .row{display:grid;grid-template-columns:36px 1fr 56px;gap:10px;align-items:center;background:var(--surface);border-radius:10px;padding:8px;}
+  .slab .row i{height:36px;border-radius:8px;background:#D5D5D5;} .slab .row b{height:9px;border-radius:9px;background:#CFCFCF;} .slab .row s{height:22px;border-radius:999px;background:var(--ink);}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important;}
+    .mark::before{transform:none;} .slab{transform:none;}
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <h1 class="page">HotDrop motion concepts</h1>
+    <p class="lede">Six small interaction ideas for review, each rebuilt in HotDrop's own look. Every demo is live: click, hover or scroll. Techniques were studied on usedarwin.app; nothing here reuses its copy or assets.</p>
+  </header>
+
+  <section class="demo" aria-labelledby="c1">
+    <div class="meta"><h2 id="c1">1. Marker sweep headline</h2><dl>
+      <dt>Inspired by</dt><dd>Darwin home and onboarding: a flat highlight block sits behind half the headline.</dd>
+      <dt>In HotDrop</dt><dd>Landing hero: a cobalt-soft marker wipes in once under "before it's gone."</dd></dl></div>
+    <div class="stage"><button class="replay" data-replay="mk">Replay</button>
+      <h3 class="mk-h">Wear it <span class="mark on" id="mk">before it's gone.</span></h3></div>
+  </section>
+
+  <section class="demo" aria-labelledby="c2">
+    <div class="meta"><h2 id="c2">2. Live takes feed</h2><dl>
+      <dt>Inspired by</dt><dd>Darwin home hero: a simulated live list where one row lifts into the spotlight in turn.</dd>
+      <dt>In HotDrop</dt><dd>Landing hero, next to the phone: recent takes and scores rotate, so the page feels busy before anyone taps.</dd></dl></div>
+    <div class="stage"><ul class="feed" id="feed"></ul></div>
+  </section>
+
+  <section class="demo" aria-labelledby="c3">
+    <div class="meta"><h2 id="c3">3. Pulse ring on live pins</h2><dl>
+      <dt>Inspired by</dt><dd>Darwin's live-status dot: a box-shadow ring expands and fades every 1.8 s.</dd>
+      <dt>In HotDrop</dt><dd>/mobile map: live drops pulse, sold-out drops go grey and still. Landing "Live" badges use the same ring. Click a pin to sell one.</dd></dl></div>
+    <div class="stage"><div class="map-mock" id="map">
+      <button class="pin live" style="left:22%;top:30%;background-image:url(/img/photos/birkin.jpg)" aria-label="Birkin, 2 left"><span class="n">2</span></button>
+      <button class="pin live" style="left:60%;top:55%;background-image:url(/img/photos/xt6.jpg)" aria-label="XT-6, 6 left"><span class="n">6</span></button>
+      <button class="pin sold" style="left:78%;top:18%;background-image:url(/img/photos/carhartt.jpg)" aria-label="Carhartt, sold out"></button>
+    </div></div>
+  </section>
+
+  <section class="demo" aria-labelledby="c4">
+    <div class="meta"><h2 id="c4">4. Your stylist is looking</h2><dl>
+      <dt>Inspired by</dt><dd>Darwin's mascot: a slow bob, an occasional blink, and three typing dots while it works.</dd>
+      <dt>In HotDrop</dt><dd>/mobile queue screen while the take waits for a score. Click to reveal a score.</dd></dl></div>
+    <div class="stage"><button class="replay" id="look-go">Score it</button>
+      <div class="look"><div class="avatar" aria-hidden="true"><span class="eyes"><i></i><i></i></span></div>
+      <p id="look-t">Your stylist is watching your take<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
+      <div class="sc" id="look-sc" aria-live="polite"></div></div></div>
+  </section>
+
+  <section class="demo" aria-labelledby="c5">
+    <div class="meta"><h2 id="c5">5. Product breaks the word</h2><dl>
+      <dt>Inspired by</dt><dd>Darwin's demo store: a giant display word with the product sitting through the letters.</dd>
+      <dt>In HotDrop</dt><dd>Landing "Live now" header and the drop sheet hero. Move the pointer: the photo tilts toward it.</dd></dl></div>
+    <div class="stage"><div class="bt" id="bt"><p class="word" aria-hidden="true">DROP</p><img src="/img/photos/xt6.jpg" alt="Salomon XT-6"></div></div>
+  </section>
+
+  <section class="demo" aria-labelledby="c6">
+    <div class="meta"><h2 id="c6">6. Tilt that settles on scroll</h2><dl>
+      <dt>Inspired by</dt><dd>Darwin home: the product dashboard is framed as a slab seen slightly from below.</dd>
+      <dt>In HotDrop</dt><dd>Landing: the Studio preview starts tilted back and lies flat as it scrolls into view.</dd></dl></div>
+    <div class="stage tilt-stage"><button class="replay" data-replay="slab">Replay</button>
+      <div class="slab" id="slab"><div class="chrome"><i></i><i></i><i></i></div><div class="rows">
+        <div class="row"><i></i><b></b><s></s></div><div class="row"><i></i><b></b><s></s></div><div class="row"><i></i><b></b><s></s></div></div></div></div>
+  </section>
+</main>
+<script>
+(() => {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = (s) => document.querySelector(s);
+
+  document.querySelectorAll('[data-replay]').forEach((b) => b.addEventListener('click', () => {
+    const n = document.getElementById(b.dataset.replay);
+    const cls = n.id === 'mk' ? 'on' : 'flat';
+    n.classList.remove(cls); void n.offsetWidth; requestAnimationFrame(() => n.classList.add(cls));
+  }));
+
+  // 2: rotate the spotlight through simulated takes
+  const takes = [['birkin','@maya.fits','Birkin 25, held',91],['xt6','@j0nny','XT-6, scored',78],['flats','@priya','Ballet flats, retry',54],['stoneisland','@kwame','Stone Island, held',88],['football','@lil.b','Arsenal shirt, scored',72]];
+  const feed = $('#feed');
+  feed.innerHTML = takes.slice(0, 4).map(([img, who, what, s]) => `<li class="${what.includes('held') ? 'held' : ''}"><img src="/img/photos/${img}.jpg" alt=""><div><b>${who}</b><span>${what}</span></div><em>${s}</em></li>`).join('');
+  let k = 0;
+  const spot = () => [...feed.children].forEach((li, i) => li.classList.toggle('spot', i === k % feed.children.length));
+  spot(); if (!reduced) setInterval(() => { k++; spot(); }, 1600);
+
+  // 3: selling a unit updates the count; zero stops the pulse
+  $('#map').addEventListener('click', (e) => {
+    const pin = e.target.closest('.pin.live'); if (!pin) return;
+    const n = pin.querySelector('.n'); const left = +n.textContent - 1;
+    if (left > 0) n.textContent = left; else { n.remove(); pin.className = 'pin sold'; }
+  });
+
+  // 4: reveal a score, counting up
+  $('#look-go').addEventListener('click', () => {
+    const out = $('#look-sc'), to = 60 + Math.floor(Math.random() * 35), t0 = performance.now();
+    $('#look-t').firstChild.textContent = 'Scored';
+    if (reduced) return (out.textContent = to);
+    const step = (t) => { const p = Math.min(1, (t - t0) / 700); out.textContent = Math.round(to * (1 - (1 - p) ** 3)); if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+
+  // 5: pointer tilt
+  const bt = $('#bt'), img = bt.querySelector('img');
+  if (!reduced) bt.parentElement.addEventListener('pointermove', (e) => {
+    const r = bt.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    img.style.transform = `rotate(-6deg) rotateY(${x * 18}deg) rotateX(${-y * 14}deg) translate(${x * 10}px,${y * 8}px)`;
+  });
+  bt.parentElement.addEventListener('pointerleave', () => (img.style.transform = ''));
+
+  // 6: flatten when half in view
+  new IntersectionObserver((es) => es.forEach((en) => en.isIntersecting && en.target.classList.add('flat')), { threshold: .6 }).observe($('#slab'));
+})();
+</script>
+</body>
+</html>
