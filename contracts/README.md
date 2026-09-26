@@ -65,3 +65,35 @@ type ErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "DROP_NOT_LIVE" | "BAD_DURATION"
 Image options for `image_url`: `/img/birkin.svg`, `/img/baguette.svg`, `/img/flats.svg`, `/img/jacket.svg`, `/img/shell.svg`, `/img/sneaker.svg`, `/img/shirt.svg`, and the photos `/img/photos/{birkin,arcteryx,carhartt,xt6,stoneisland,football,baguette,flats}.jpg` (Unsplash/Pexels, see `web/public/img/photos/CREDITS.md`). Hold length per drop is `hold_minutes` (env `HOLD_MS` overrides it for tests).
 
 Rules: max 3 counted attempts per drop (`error` verdicts do not count); duration 10000–20000 ms; video ≤ 50 MB; hold 10 min; purchase window 5 min; one active reservation per drop (single demo user). Several drops can be live at once, each at its own location; `VENUE_LAT`/`VENUE_LNG` move drop 1 only.
+
+## v3 — scored takes and merchant approval
+
+The model **scores** every take; it no longer decides pass/fail on its own. The merchant approves takes in Studio, highest score first. A campaign can switch on **auto-review**, where the scores are checked against the merchant's thresholds instead.
+
+```ts
+type Metric = "outfit" | "styling" | "product_detail" | "energy" | "quality";
+type Scores = Record<Metric, number>;            // each 0–10
+type ReviewSettings = { auto_review: boolean;     // default false
+  thresholds: Scores;                             // minimum per metric, 0 (lenient) – 10 (brutal); default 6 each
+  scoring_prompt: string };                       // merchant's extra scoring instructions, ≤ 1000 chars, default ""
+
+// Attempt gains (Review items in campaign detail gain the same fields):
+//   verdict: "pending" | "pass" | "retry" | "error"
+//   score: number | null   (0–100 overall)
+//   scores: Scores | null
+//   rank: number | null    (1 = highest-scoring pending take in this campaign; null unless pending)
+```
+
+Flow for `POST /api/drops/:id/attempts` (response shape unchanged: `{ attempt, reservation, error }`):
+- The model returns `scores`, `score`, `criteria` and `feedback`. Transcript and frames stay untrusted input.
+- `auto_review` off: `verdict: "pending"`, `reservation: null`. No stock is held until the merchant approves.
+- `auto_review` on: `pass` (and a hold is claimed) when every metric meets its threshold; otherwise `retry` with feedback.
+- `error` is unchanged (model failure; doesn't count as an attempt). A pending take counts as an attempt.
+- Demo skip (`demo_pass=1`) and `POST /api/attempts/:id/approve` still jump straight to `pass` with a hold.
+
+| Method, path | Request | 200 response | Errors |
+| --- | --- | --- | --- |
+| GET /api/attempts/:id | — | `{ attempt: Attempt, reservation: Reservation \| null }` (customer polls this while pending) | 404 |
+| POST /api/campaigns/:id/decisions | JSON `{ attempt_id, decision: "approve" \| "reject", note? }` | `{ attempt, reservation, error }`. Approve claims a hold (`error` may be `NO_STOCK` / `ALREADY_RESERVED`); reject sets `retry`, with `feedback` = note or a default | 400, 404, 409 BAD_STATE (not pending) |
+| GET /api/campaigns/:id | — | as before, plus `campaign.review: ReviewSettings`. `reviews` lists pending takes by score (highest first), then the rest newest first | 404 |
+| PATCH /api/campaigns/:id | as before, plus optional `review: Partial<ReviewSettings>` | `Drop` | 400 |

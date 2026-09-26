@@ -2,7 +2,7 @@
   "attempt": {
     "id": 1,
     "n": 1,
-    "verdict": "retry",
+    "verdict": "pending",
     "criteria": [
       {
         "id": "outfit",
@@ -25,17 +25,17 @@
         "evidence": "On topic and suitable."
       }
     ],
-    "feedback": "Nice styling idea. Add one detail from the drop card, then submit again.",
+    "feedback": "Strong styling idea and a clear drop-card detail. You're in the queue — the merchant approves the best takes first.",
     "suggested_caption": null,
-    "score": 52,
+    "score": 78,
     "scores": {
-      "outfit": 7,
-      "styling": 6,
-      "product_detail": 2,
-      "energy": 6,
-      "quality": 6
+      "outfit": 8,
+      "styling": 9,
+      "product_detail": 7,
+      "energy": 8,
+      "quality": 7
     },
-    "rank": null
+    "rank": 2
   },
   "reservation": null,
   "error": null
