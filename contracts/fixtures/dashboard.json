@@ -1,0 +1,11 @@
+{
+  "stock": { "total": 3, "held": 0, "posted": 0, "sold": 1, "available": 2 },
+  "funnel": { "attempts": 2, "passed": 1, "held": 1, "posted": 1, "purchased": 1 },
+  "events": [
+    {"at": "2026-09-26T11:03:00.000Z", "type": "purchased", "detail": {"reservation_id": 1}},
+    {"at": "2026-09-26T11:02:00.000Z", "type": "posted", "detail": {"reservation_id": 1}},
+    {"at": "2026-09-26T11:01:00.000Z", "type": "hold_claimed", "detail": {"reservation_id": 1}},
+    {"at": "2026-09-26T11:01:00.000Z", "type": "reviewed", "detail": {"attempt_id": 2, "verdict": "pass"}},
+    {"at": "2026-09-26T11:00:00.000Z", "type": "reviewed", "detail": {"attempt_id": 1, "verdict": "retry"}}
+  ]
+}

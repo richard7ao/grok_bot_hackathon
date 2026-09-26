@@ -15,9 +15,12 @@ Replaces the native-iOS brief (`Fleek-DropQuest-Astra-Brief.md`) for today's bui
 
 ## Architecture
 
-One Bun process, `server.ts`: static files + JSON API + `bun:sqlite` (`dropquest.db`) + clips in `uploads/`. Seeded single demo user, no auth. `XAI_API_KEY` in gitignored `.env`.
+Two Bun processes, split so they can be built on separate branches:
+- `backend/` (port 3000): JSON API + `bun:sqlite` (`dropquest.db`) + clips in `uploads/`. Files: `server.ts`, `db.ts`, `review.ts`, `integration.test.ts`, `smoke-xai.ts`. `XAI_API_KEY` in gitignored `backend/.env`.
+- `web/` (port 5173): `dev.ts` serves `public/` and proxies `/api` + `/uploads` to `API_URL`, or serves `contracts/fixtures` when unset. Files: `public/index.html`, `public/style.css`, `public/app.js`, `public/dashboard.html`, `public/dashboard.js`, `integration.test.ts`, `live.check.ts`.
+- `contracts/` (frozen on `main`): `README.md` API contract + `fixtures/*.json`.
 
-Files: `server.ts`, `db.ts` (schema, seed, hold/checkout logic), `review.ts` (xAI call), `public/index.html`, `public/app.js`, `public/dashboard.html`, `public/dashboard.js`, `server.test.ts`.
+Seeded single demo user, no auth. Open `http://localhost:5173` for the demo.
 
 ### Tables
 
@@ -61,174 +64,217 @@ Location is client-reported. Posting is self-reported. Frames and transcript are
 
 ---
 
-## T1 — DropQuest web slice
+## Tiers for this build
 
-**Description:** Full vertical slice: map → record → Grok review → hold → share → buy → dashboard.
+User decision (2026-09-26): no Tier 2 (simplify) or Tier 3 (unit) this build, for hackathon time. Each stage keeps the four verify blocks. Tiers 2 and 3 say what they skip and where the surface is covered: every behaviour is exercised by Tier 4 integration tests that run the real server over HTTP.
 
-### T1.1 — Backend
+State files (local-only): `tasks/backend-state.json` tracks T1 in the backend worktree. `tasks/frontend-state.json` tracks T2 in the frontend worktree.
 
-**Description:** Server, DB, hold and checkout logic, review.
+## T1 — Backend
 
-#### T1.1.1 — DB + hold/checkout logic + API skeleton
+**Description:** The API in `contracts/README.md`, backed by SQLite, with the xAI review.
 
-**Description:** `db.ts`, `server.ts` (all routes except review wiring), seed, `server.test.ts`.
+### T1.1 — API
+
+**Description:** Store, rules, and review behind the contract.
+
+#### T1.1.1 — Store, rules, routes (fake review)
+
+**Description:** `backend/db.ts`, `backend/server.ts`, `backend/review.ts` (parser + fake mode), `backend/integration.test.ts`.
 
 **Verify:**
 
 ```bash
 # tier1_build
-bun build server.ts --target=bun --outdir=/tmp/dq-build
+cd backend && bun build server.ts --target=bun --outdir=/tmp/dq-backend
 ```
 
 ```bash
 # tier2_simplify
-# code-simplifier agent on changed files; pass = no issues or all fixed
+# SKIPPED (user decision 2026-09-26). Untested surface: code clarity only. No behaviour lives here.
 ```
 
 ```bash
 # tier3_unit
-bun test   # last unit: 2 concurrent claims → exactly 1 hold; buy before posted → 409; expired hold frees stock; 4th attempt rejected
+# SKIPPED (user decision 2026-09-26). Untested surface: isolated functions. Covered by tier4 over HTTP.
 ```
 
 ```bash
 # tier4_integration
-bun server.ts & sleep 1; curl -sf localhost:3000/api/drops | grep -q '"available"'; curl -sf localhost:3000/api/dashboard >/dev/null; kill %1
+cd backend && bun test integration.test.ts
 ```
 
-#### T1.1.2 — xAI review
+#### T1.1.2 — Real xAI review
 
-**Description:** `review.ts`, wired into POST attempts.
+**Description:** `backend/review.ts` xAI call, `backend/smoke-xai.ts`.
 **Requires:** T1.1.1
 
 **Verify:**
 
 ```bash
 # tier1_build
-bun build server.ts --target=bun --outdir=/tmp/dq-build
+cd backend && bun build server.ts smoke-xai.ts --target=bun --outdir=/tmp/dq-backend
 ```
 
 ```bash
 # tier2_simplify
-# code-simplifier agent on changed files
+# SKIPPED (user decision 2026-09-26). No behaviour surface.
 ```
 
 ```bash
 # tier3_unit
-bun test   # parser: valid JSON → verdict; garbage/timeout → 'error'; duration out of range rejected before model call
+# SKIPPED (user decision 2026-09-26). Parser covered by tier4 (fake + unreachable-xAI tests) and the live smoke.
 ```
 
 ```bash
 # tier4_integration
-bun server.ts & sleep 1; curl -sf -F video=@fixtures/pass.mp4 -F transcript="$(cat fixtures/pass.txt)" -F frame0=@fixtures/f0.jpg -F debug=1 localhost:3000/api/drops/1/attempts | grep -q '"verdict"'; kill %1
+cd backend && bun test integration.test.ts && bun smoke-xai.ts   # smoke prints PASS/RETRY verdicts from real grok; exits 1 unless pass→pass and retry→retry
 ```
 
-### T1.2 — Customer web app
+## T2 — Frontend
 
-#### T1.2.1 — Map + drop sheet + location
+**Description:** Customer web app and merchant dashboard, built against the fixture mock, then joined to the real backend.
 
-**Description:** `public/index.html`, `public/app.js` map screen.
-**Requires:** T1.1.1
+### T2.1 — Customer app
+
+#### T2.1.1 — Shell, map, drop sheet, location
+
+**Description:** `web/public/index.html`, `web/public/style.css`, `web/public/app.js` (map + drop), `web/integration.test.ts`.
 
 **Verify:**
 
 ```bash
 # tier1_build
-bun build public/app.js --outdir=/tmp/dq-build
+cd web && bun build public/app.js --outdir=/tmp/dq-web
 ```
 
 ```bash
 # tier2_simplify
-# code-simplifier agent on changed files
+# SKIPPED (user decision 2026-09-26). No behaviour surface.
 ```
 
 ```bash
 # tier3_unit
-bun test   # haversine helper: venue point inside radius, 1 km away outside
+# SKIPPED (user decision 2026-09-26). Covered by tier4.
 ```
 
 ```bash
 # tier4_integration
-# manual in Chrome: pins render, distance gate blocks, debug toggle unlocks
+cd web && bun test integration.test.ts
+# plus Chrome at http://localhost:5173 (bun dev): 3 pins, live pin opens sheet, start button locked with distance reason, "at venue" unlocks
 ```
 
-#### T1.2.2 — Record + transcript + frames + review UI
+#### T2.1.2 — Record, preview, review result
 
-**Requires:** T1.1.2, T1.2.1
+**Requires:** T2.1.1
 
 **Verify:**
 
 ```bash
 # tier1_build
-bun build public/app.js --outdir=/tmp/dq-build
+cd web && bun build public/app.js --outdir=/tmp/dq-web
 ```
 
 ```bash
 # tier2_simplify
-# code-simplifier agent on changed files
+# SKIPPED (user decision 2026-09-26). No behaviour surface.
 ```
 
 ```bash
 # tier3_unit
-# no pure logic added; browser media APIs covered by tier4
+# SKIPPED (user decision 2026-09-26). Browser media APIs; covered by tier4 manual run.
 ```
 
 ```bash
 # tier4_integration
-# manual in Chrome: record 15 s → transcript non-empty → retry clip gets feedback → pass clip gets hold
+cd web && bun test integration.test.ts
+# plus Chrome (mock): record 12 s, transcript shown, submit -> retry feedback + criteria; retake + submit -> share screen with 10:00 timer
 ```
 
-#### T1.2.3 — Hold timer, share, "I posted", buy, done card
+#### T2.1.3 — Share, "I posted", buy, done, reload recovery
 
-**Requires:** T1.2.2
+**Requires:** T2.1.2
 
 **Verify:**
 
 ```bash
 # tier1_build
-bun build public/app.js --outdir=/tmp/dq-build
+cd web && bun build public/app.js --outdir=/tmp/dq-web
 ```
 
 ```bash
 # tier2_simplify
-# code-simplifier agent on changed files
+# SKIPPED (user decision 2026-09-26). No behaviour surface.
 ```
 
 ```bash
 # tier3_unit
-bun test   # buy gate already covered in T1.1.1
+# SKIPPED (user decision 2026-09-26). Covered by tier4.
 ```
 
 ```bash
 # tier4_integration
-# manual: download clip, upload to Instagram web, tap I posted, buy → purchased; reload keeps timer
+cd web && bun test integration.test.ts
+# plus Chrome (mock): copy caption ends "#ad #FleekDropQuest", I posted -> buy screen 5:00 timer, buy -> done card
 ```
 
-### T1.3 — Dashboard
+### T2.2 — Dashboard
 
-#### T1.3.1 — Merchant dashboard
+#### T2.2.1 — Merchant dashboard
 
-**Requires:** T1.1.1
+**Description:** `web/public/dashboard.html`, `web/public/dashboard.js`.
 
 **Verify:**
 
 ```bash
 # tier1_build
-bun build public/dashboard.js --outdir=/tmp/dq-build
+cd web && bun build public/dashboard.js --outdir=/tmp/dq-web
 ```
 
 ```bash
 # tier2_simplify
-# code-simplifier agent on changed files
+# SKIPPED (user decision 2026-09-26). No behaviour surface.
 ```
 
 ```bash
 # tier3_unit
-bun test   # /api/dashboard counts match seeded reservations
+# SKIPPED (user decision 2026-09-26). Covered by tier4.
 ```
 
 ```bash
 # tier4_integration
-# manual: run the full flow, dashboard stock/funnel/log update within 3 s
+cd web && bun test integration.test.ts
+# plus Chrome: /dashboard.html shows stock, funnel, events from fixture; refreshes every 3 s
+```
+
+### T2.3 — Join
+
+#### T2.3.1 — Web against the real backend
+
+**Description:** `web/live.check.ts`. Runs after `feat/backend` is merged to `main` and `feat/frontend` is rebased on it.
+**Requires:** T1.1.2 (check `git log main --oneline | grep T1.1.2`), T2.1.3, T2.2.1
+
+**Verify:**
+
+```bash
+# tier1_build
+cd web && bun build public/app.js public/dashboard.js --outdir=/tmp/dq-web
+```
+
+```bash
+# tier2_simplify
+# SKIPPED (user decision 2026-09-26). No behaviour surface.
+```
+
+```bash
+# tier3_unit
+# SKIPPED (user decision 2026-09-26). Covered by tier4.
+```
+
+```bash
+# tier4_integration
+cd web && bun live.check.ts
+# plus full demo run in Chrome: (cd backend && bun dev) + (cd web && bun dev:live), real grok review, real Instagram upload, dashboard updates
 ```
 
 ## Stretch (only if everything above is done by 15:30)

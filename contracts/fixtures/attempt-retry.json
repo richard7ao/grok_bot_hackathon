@@ -1,0 +1,15 @@
+{
+  "attempt": {
+    "id": 1, "n": 1, "verdict": "retry",
+    "criteria": [
+      {"id": "outfit", "result": "pass", "evidence": "Describes a grey hoodie and black jeans."},
+      {"id": "styling_idea", "result": "pass", "evidence": "Would wear the jacket open over the hoodie."},
+      {"id": "product_detail", "result": "unknown", "evidence": "No detail from the drop card was mentioned."},
+      {"id": "suitable", "result": "pass", "evidence": "On topic and suitable."}
+    ],
+    "feedback": "Nice styling idea. Add one detail from the drop card, like the corduroy collar, then submit again.",
+    "suggested_caption": null
+  },
+  "reservation": null,
+  "error": null
+}

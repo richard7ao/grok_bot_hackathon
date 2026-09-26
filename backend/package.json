@@ -1,0 +1,2 @@
+{ "name": "dropquest-backend", "private": true, "type": "module",
+  "scripts": { "dev": "bun --watch server.ts", "test": "bun test" } }

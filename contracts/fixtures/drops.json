@@ -1,0 +1,28 @@
+{
+  "server_time": "2026-09-26T11:00:00.000Z",
+  "drops": [
+    {
+      "id": 1, "title": "Reworked Chore Jacket — Brown Duck", "status": "live", "price_pence": 8500,
+      "image_url": "/img/jacket.svg", "lat": 51.5237, "lng": -0.0785, "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the featured vintage jacket. Include one detail about the jacket from the drop card.",
+      "facts": ["Brown duck canvas", "Blanket-lined body", "Corduroy collar", "Brass-tone buttons", "Size L"],
+      "rubric": [
+        {"id": "outfit", "label": "Show or describe your current outfit"},
+        {"id": "styling_idea", "label": "Say how you would style the jacket"},
+        {"id": "product_detail", "label": "Mention one detail from the drop card"},
+        {"id": "suitable", "label": "Keep it relevant and suitable"}
+      ],
+      "allocation_total": 3, "available": 3
+    },
+    {
+      "id": 2, "title": "Y2K Denim Drop", "status": "preview", "price_pence": 6000,
+      "image_url": "/img/jacket.svg", "lat": 51.5262, "lng": -0.0752, "radius_m": 150,
+      "prompt": "Coming soon", "facts": [], "rubric": [], "allocation_total": 0, "available": 0
+    },
+    {
+      "id": 3, "title": "Football Shirt Drop", "status": "preview", "price_pence": 4500,
+      "image_url": "/img/jacket.svg", "lat": 51.5215, "lng": -0.0821, "radius_m": 150,
+      "prompt": "Coming soon", "facts": [], "rubric": [], "allocation_total": 0, "available": 0
+    }
+  ]
+}
