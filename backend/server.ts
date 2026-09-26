@@ -5,6 +5,10 @@ import { errorReview, reviewAttempt, type Review } from "./review";
 
 const UPLOADS = process.env.UPLOADS_DIR ?? "uploads";
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+// The web recorder auto-stops at 20 s but measures after the stop fires, so allow timer slack.
+const MAX_DURATION_MS = 21_000;
+if (process.env.REVIEW_MODE !== "fake" && !process.env.OPENAI_API_KEY)
+  throw new Error("OPENAI_API_KEY is missing: put it in the repo-root .env and start with `bun dev`");
 mkdirSync(UPLOADS, { recursive: true });
 const db = openDb();
 
@@ -42,7 +46,7 @@ async function postAttempt(req: Req) {
   if (!form || !(video instanceof File)) throw new ApiError(400, "BAD_REQUEST", "Missing video");
   if (video.size > MAX_VIDEO_BYTES) throw new ApiError(413, "TOO_LARGE", "Video is over 50 MB");
   const durationMs = Number(form.get("duration_ms"));
-  if (!(durationMs >= 10_000 && durationMs <= 20_000)) throw new ApiError(422, "BAD_DURATION", "Record between 10 and 20 seconds");
+  if (!(durationMs >= 10_000 && durationMs <= MAX_DURATION_MS)) throw new ApiError(422, "BAD_DURATION", "Record between 10 and 20 seconds");
   if (form.get("debug") !== "1") {
     const lat = Number(form.get("lat"));
     const lng = Number(form.get("lng"));
@@ -50,6 +54,7 @@ async function postAttempt(req: Req) {
     if (!inside) throw new ApiError(403, "OUTSIDE_ZONE", "Get closer to the drop to enter");
   }
   const transcript = String(form.get("transcript") ?? "").slice(0, 4000);
+  if (!transcript.trim()) throw new ApiError(400, "BAD_REQUEST", "We didn't catch any speech. Record again and talk us through your look.");
   const frames = [0, 1, 2, 3].map((i) => form.get(`frame${i}`)).filter((f): f is File => f instanceof File);
   const videoPath = `${crypto.randomUUID()}.${video.type.includes("mp4") ? "mp4" : "webm"}`;
 

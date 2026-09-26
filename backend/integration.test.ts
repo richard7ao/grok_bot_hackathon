@@ -137,8 +137,19 @@ test("bad duration, preview drop and missing video are refused before review", a
   f.delete("video");
   const missing = await post(api, "/api/drops/1/attempts", f);
   expect(missing.status).toBe(400);
+  const blank = await post(api, "/api/drops/1/attempts", entry("   "));
+  expect(blank.status).toBe(400);
+  expect((await blank.json()).error).toBe("BAD_REQUEST");
   const state = await (await fetch(`${api}/api/drops/1/state`)).json();
   expect(state.attempts_used).toBe(0);
+});
+
+test("an auto-stopped 20 s clip is accepted; a much longer one is refused", async () => {
+  const ok = await post(api, "/api/drops/1/attempts", entry(PASS, { duration_ms: "20100" }));
+  expect(ok.status).toBe(200);
+  const long = await post(api, "/api/drops/1/attempts", entry(PASS, { duration_ms: "25000" }));
+  expect(long.status).toBe(422);
+  expect((await long.json()).error).toBe("BAD_DURATION");
 });
 
 test("second pass while holding is ALREADY_RESERVED and stock is unchanged", async () => {
@@ -147,6 +158,16 @@ test("second pass while holding is ALREADY_RESERVED and stock is unchanged", asy
   expect(res.status).toBe(409);
   expect((await res.json()).error).toBe("ALREADY_RESERVED");
   expect((await (await fetch(`${api}/api/dashboard`)).json()).stock.held).toBe(1);
+});
+
+test("no stock left: a passing entry gets NO_STOCK and holds nothing", async () => {
+  await reset(0);
+  const res = await post(api, "/api/drops/1/attempts", entry(PASS));
+  expect(res.status).toBe(200);
+  const body = await res.json();
+  expect(body.attempt.verdict).toBe("pass");
+  expect(body.reservation).toBeNull();
+  expect(body.error).toBe("NO_STOCK");
 });
 
 test("last unit: two simultaneous passing entries produce exactly one hold", async () => {
@@ -178,6 +199,13 @@ test("review failure is an error verdict that does not count as an attempt", asy
     expect(body.reservation).toBeNull();
   }
   expect((await (await fetch(`${base}/api/drops/1/state`)).json()).attempts_used).toBe(0);
+});
+
+test("a restart applies a moved venue pin to an existing database", async () => {
+  const shared = join(mkdtempSync(join(tmpdir(), "dq-")), "pin.db");
+  const first = await start(3904, { DB_PATH: shared });
+  await start(3905, { DB_PATH: shared, VENUE_LAT: "51.6" });
+  expect((await (await fetch(`${first}/api/drops`)).json()).drops[0].lat).toBe(51.6);
 });
 
 test("oversized video is refused with 413", async () => {

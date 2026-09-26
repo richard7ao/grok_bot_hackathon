@@ -16,7 +16,10 @@ export function parseReview(raw: unknown, rubricIds: string[]): Review {
   const criteria = r.criteria
     .filter((c) => rubricIds.includes(c?.id) && RESULTS.includes(c?.result))
     .map((c) => ({ id: c.id, result: c.result, evidence: String(c.evidence ?? "") }));
-  const allPass = rubricIds.every((id) => criteria.some((c) => c.id === id && c.result === "pass"));
+  const allPass = rubricIds.every((id) => {
+    const results = criteria.filter((c) => c.id === id).map((c) => c.result);
+    return results.length > 0 && results.every((r) => r === "pass");
+  });
   return {
     verdict: allPass ? "pass" : "retry",
     criteria,
@@ -57,7 +60,7 @@ Do not judge looks, body, accent, wealth, follower count, or enthusiasm for the 
 feedback: one or two warm sentences telling the creator exactly what to add or fix, or congratulating them if everything passed.
 suggested_caption: if everything passed, a short first-person Instagram caption about their styling idea that does not claim they own or have worn the item; otherwise null.`;
 
-const SCHEMA = {
+const reviewSchema = (rubricIds: string[]) => ({
   type: "object",
   additionalProperties: false,
   required: ["criteria", "feedback", "suggested_caption"],
@@ -68,15 +71,16 @@ const SCHEMA = {
         type: "object",
         additionalProperties: false,
         required: ["id", "result", "evidence"],
-        properties: { id: { type: "string" }, result: { type: "string", enum: RESULTS }, evidence: { type: "string" } },
+        properties: { id: { type: "string", enum: rubricIds }, result: { type: "string", enum: RESULTS }, evidence: { type: "string" } },
       },
     },
     feedback: { type: "string" },
     suggested_caption: { type: ["string", "null"] },
   },
-};
+});
 
 async function openaiReview({ drop, transcript, frames }: { drop: Drop; transcript: string; frames: string[] }): Promise<Review> {
+  const rubricIds = drop.rubric.map((c) => c.id);
   try {
     const res = await fetch(OPENAI_URL, {
       method: "POST",
@@ -94,7 +98,7 @@ async function openaiReview({ drop, transcript, frames }: { drop: Drop; transcri
             ],
           },
         ],
-        response_format: { type: "json_schema", json_schema: { name: "review", strict: true, schema: SCHEMA } },
+        response_format: { type: "json_schema", json_schema: { name: "review", strict: true, schema: reviewSchema(rubricIds) } },
       }),
     });
     if (!res.ok) {
@@ -102,7 +106,7 @@ async function openaiReview({ drop, transcript, frames }: { drop: Drop; transcri
       return errorReview("The reviewer is unavailable");
     }
     const body = await res.json();
-    return parseReview(JSON.parse(body.choices?.[0]?.message?.content ?? "null"), drop.rubric.map((c) => c.id));
+    return parseReview(JSON.parse(body.choices?.[0]?.message?.content ?? "null"), rubricIds);
   } catch (e) {
     console.error("openai", (e as Error).message);
     return errorReview("The reviewer is unavailable");
