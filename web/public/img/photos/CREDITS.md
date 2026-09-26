@@ -8,3 +8,12 @@
 - football.jpg — Nelson Ndongala — https://unsplash.com/photos/alRAEyW1yFg — Unsplash License
 - baguette.jpg — Maude Frédérique Lavoie — https://unsplash.com/photos/Zha2jqwxzMY — Unsplash License
 - flats.jpg — Noemí Jiménez — https://www.pexels.com/photo/pink-ballet-shoes-16541497/ — Pexels License
+- moonswatch.jpg — Nestor Gonzalez Dominguez — https://www.pexels.com/photo/sports-purple-watch-16331310/ — Pexels License
+- royalpop.jpg — Jess Bailey — https://unsplash.com/photos/DXd6X3wuRA0 — Unsplash License
+- england.jpg — Simon Reza — https://unsplash.com/photos/yeRbrTjppFY — Unsplash License
+- rolex-sub.jpg — Patrick Langwallner — https://unsplash.com/photos/GaHmbqNh5q8 — Unsplash License
+- rolex-datejust.jpg — Yash Parashar — https://unsplash.com/photos/LWPPpkn6NEQ — Unsplash License
+- labubu.jpg — David Kristianto — https://unsplash.com/photos/56Ug94cOJwI — Unsplash License
+- bambino.jpg — Mobina Ghazazani — https://unsplash.com/photos/lnbuoKz2GlM — Unsplash License
+- tabby.jpg — Irene Kredenets — https://unsplash.com/photos/pSVYyO-XlJk — Unsplash License
+- puzzle.jpg — Arno Senoner — https://unsplash.com/photos/iUvQRvdIhsY — Unsplash License
