@@ -1105,3 +1105,12 @@ function startTimer(sel, totalMs, ring) {
 }
 
 boot();
+
+// Darwin-inspired 3D tilt: the drop photo leans toward the pointer (desktop demo in Chrome); no-op under reduced motion.
+$("#s-drop .hero").addEventListener("pointermove", (e) => {
+  if (REDUCED.matches || e.pointerType !== "mouse") return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+  $("#d-img").style.transform = `rotateY(${x * 16}deg) rotateX(${-y * 12}deg) scale(1.03)`;
+});
+$("#s-drop .hero").addEventListener("pointerleave", () => ($("#d-img").style.transform = ""));

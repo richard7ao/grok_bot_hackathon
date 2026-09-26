@@ -312,3 +312,12 @@ input:focus, textarea:focus, select:focus { outline: 0; background: #fff; border
 .editor:not(.open) { transition: transform .24s cubic-bezier(.4,0,1,1), visibility 0s .24s; }
 .f-track i { transform-origin: left; }
 @media (prefers-reduced-motion: reduce) { .shine::after { animation: none !important; } }
+
+/* Darwin-inspired: an ink pill track with a white active pill, and a live dot that sends out a ring. */
+.tabs { background: var(--ink); box-shadow: 0 8px 20px -10px rgba(0,0,0,.45); }
+.tabs button { color: rgba(255,255,255,.7); transition: background-color .15s cubic-bezier(.4,0,.2,1), color .15s cubic-bezier(.4,0,.2,1); }
+.tabs button:hover:not(.on) { color: #fff; }
+.tabs button.on { background: #fff; color: var(--ink); }
+.status.live::before { animation: live-ring 1.8s ease-out infinite; }
+@keyframes live-ring { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.7); } 100% { box-shadow: 0 0 0 6px rgba(255,255,255,0); } }
+.tabs button:not(.on) .count { color: var(--ink); }

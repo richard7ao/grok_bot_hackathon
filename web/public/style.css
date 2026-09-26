@@ -404,3 +404,19 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; background: tra
 }
 .upload-link { padding: 6px 12px; border: 0; border-radius: 999px; background: rgba(0,0,0,.32); color: #fff; font: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; cursor: pointer; }
 .upload-link:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+
+/* Darwin-inspired motion. Map: live pins pulse a ring (transform/opacity only, so it stays on the compositor).
+   Queue: the stylist avatar bobs and the status line types dots. Drop sheet: the product tilts toward the pointer. */
+.pin { position: relative; }
+.pin.live::before { content: ""; position: absolute; top: 0; left: 50%; width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; border: 2px solid var(--cobalt); box-sizing: border-box; pointer-events: none; animation: pin-ring 1.8s ease-out infinite; }
+@keyframes pin-ring { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.7); opacity: 0; } }
+#s-wait .dmhead .avatar { animation: bob 2.6s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-3px); } }
+#w-poll::after { content: "..."; display: inline-block; width: 0; overflow: hidden; vertical-align: bottom; animation: typing 1.2s steps(4) infinite; }
+@keyframes typing { to { width: 1.25em; } }
+#s-drop .hero { perspective: 700px; }
+#d-img { transition: transform .25s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .pin.live::before, #s-wait .dmhead .avatar, #w-poll::after { animation: none; }
+  #w-poll::after { display: none; }
+}
