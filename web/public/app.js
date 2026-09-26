@@ -274,8 +274,9 @@ async function boot() {
   try {
     await refreshDrops();
   } catch (e) {
-    $("#loc-status").textContent = `Could not load drops: ${e.message}`;
-    return;
+    // The backend may be waking up or redeploying: say so and try again shortly.
+    $("#loc-status").textContent = "Loading drops…";
+    return setTimeout(boot, 3000);
   }
   drawDrops();
   const live = st.drops.filter((d) => d.status === "live");
