@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Pair of blush satin ballet flats">
+  <defs><g id="flat">
+    <path d="M24 104 Q22 128 34 134 H146 Q176 134 178 118 Q178 104 158 98 Q134 92 114 102 Q76 114 36 100 Z" fill="#E9BDB5"/>
+    <path d="M36 100 Q76 114 114 102" fill="none" stroke="#C98F88" stroke-width="3" stroke-linecap="round"/>
+    <path d="M40 112 Q90 124 150 106" fill="none" stroke="#F6DAD4" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+    <path d="M26 132 Q28 138 36 138 H148 Q172 138 177 124" fill="none" stroke="#B9837C" stroke-width="4" stroke-linecap="round"/>
+    <path d="M108 102 q-10 -9 -14 0 q4 9 14 0 q10 -9 14 0 q-4 9 -14 0 Z" fill="#F6DAD4" stroke="#C98F88" stroke-width="1.2"/>
+  </g></defs>
+  <use href="#flat" transform="translate(-6 -24) scale(.92)" opacity=".75"/>
+  <use href="#flat" transform="translate(12 0)"/>
+</svg>

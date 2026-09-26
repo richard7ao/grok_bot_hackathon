@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fleek DropQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main id="app">
+  <header class="bar">
+    <strong>DropQuest</strong><span class="by serif">by Fleek</span>
+    <label class="debug"><input type="checkbox" id="debug"> at venue (demo)</label>
+  </header>
+  <div id="stories" class="stories" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+  <section id="s-map" class="screen">
+    <div id="map"></div>
+    <div class="sheet glass">
+      <div class="handle"></div>
+      <p class="eyebrow">Drops near you · Shoreditch</p>
+      <p id="loc-status" class="hint">Finding you…</p>
+    </div>
+  </section>
+
+  <section id="s-drop" class="screen" hidden>
+    <div class="hero">
+      <button class="link back" data-go="s-map">← Map</button>
+      <img id="d-img" class="product" alt="Drop item">
+    </div>
+    <div class="pad">
+      <p class="eyebrow">Live drop · pre-loved</p>
+      <h1 id="d-title" class="title"></h1>
+      <div class="price"><b id="d-price"></b><span id="d-stock" class="pill sage"></span></div>
+      <div class="prompt"><h2>Your challenge</h2><p id="d-prompt"></p></div>
+      <h2>Drop card</h2><ul id="d-facts" class="chips"></ul>
+      <h2>Grok checks for</h2><ul id="d-rubric" class="checks"></ul>
+      <p class="rules">Pass Grok's review to hold one item for 10 minutes. Post your clip to Instagram to unlock early access at the listed price. Stock is limited, so qualifying does not guarantee a unit.</p>
+      <p class="small">Demo listing — not affiliated with the brand.</p>
+      <button id="d-start" class="cta">Start challenge</button>
+      <p id="d-why" class="hint center"></p>
+    </div>
+  </section>
+
+  <section id="s-record" class="screen dark" hidden>
+    <div class="cam"><video id="r-live" autoplay muted playsinline></video><p id="r-prompt" class="overlay"></p><p id="r-clock" class="clock">0s</p></div>
+    <button id="r-go" class="cta rec">Record</button>
+    <button id="r-stop" class="cta rec" hidden disabled>Stop</button>
+    <p id="r-note" class="hint center"></p>
+  </section>
+
+  <section id="s-preview" class="screen" hidden>
+    <video id="p-video" controls playsinline></video>
+    <div class="bubble me"><p class="eyebrow">Grok heard</p><span id="p-transcript"></span></div>
+    <button id="p-submit" class="cta">Submit to Grok</button>
+    <button id="p-retake" class="cta ghost">Retake</button>
+  </section>
+
+  <section id="s-review" class="screen" hidden>
+    <div class="dmhead"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">typing…</div></div></div>
+    <div class="spinner" aria-hidden="true"></div>
+    <p id="rv-stage" role="status">Uploading your clip…</p>
+  </section>
+
+  <section id="s-result" class="screen" hidden>
+    <div class="dmhead"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">reviewed your take · just now</div></div></div>
+    <div class="bubble">
+      <h1 id="res-title" class="serif"></h1>
+      <p id="res-feedback"></p>
+    </div>
+    <ul id="res-criteria" class="criteria"></ul>
+    <button id="res-retry" class="cta" hidden>Try again</button>
+    <button id="res-map" class="cta ghost" data-go="s-map" hidden>Back to map</button>
+  </section>
+
+  <section id="s-share" class="screen tint" hidden>
+    <p class="eyebrow">Passed · Grok approved</p>
+    <p class="timer"><span class="serif">Held for</span> <span id="sh-timer" class="count"></span></p>
+    <h1>Post your Reel to unlock</h1>
+    <ol class="steps">
+      <li><a id="sh-download" download>Download your clip</a></li>
+      <li>Copy the caption <button id="sh-copy" class="link">Copy</button></li>
+      <li><a href="https://www.instagram.com/" target="_blank" rel="noopener">Open Instagram</a> and post it as a Reel</li>
+    </ol>
+    <div class="card"><p class="eyebrow">Caption</p><textarea id="sh-caption" rows="3" aria-label="Caption"></textarea></div>
+    <button id="sh-posted" class="cta">I posted it</button>
+    <p class="hint center">Posting is self-reported in this demo.</p>
+  </section>
+
+  <section id="s-buy" class="screen tint" hidden>
+    <p class="eyebrow">Early access unlocked</p>
+    <p class="timer"><span class="serif">Early access ends in</span> <span id="b-timer" class="count"></span></p>
+    <div class="hero"><img class="product" src="/img/birkin.svg" alt=""></div>
+    <h1 id="b-title" class="title"></h1>
+    <p id="b-price" class="price"></p>
+    <button id="b-buy" class="cta">Buy now (simulated checkout)</button>
+  </section>
+
+  <section id="s-done" class="screen glow center" hidden>
+    <span class="pill sage">Early access · purchased</span>
+    <h2 class="yours">Yours. <span class="serif">Officially.</span></h2>
+    <div class="card polaroid"><div class="ph"><img src="/img/birkin.svg" alt=""></div><p class="tag">DropQuest collectible</p><h1 id="dn-title" class="serif"></h1><p class="small">Early access · purchased</p></div>
+    <p class="card pickup">Pick up at the Fleek venue. Payment was simulated.</p>
+    <button class="cta ghost" data-go="s-map">Back to map</button>
+  </section>
+
+  <p id="toast" class="toast" role="status" hidden></p>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

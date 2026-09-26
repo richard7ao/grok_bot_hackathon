@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DropQuest Merchant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body { background: var(--cream); }
+    #dash { max-width: 960px; margin: 0 auto; padding: 24px 16px 48px; }
+    #dash .bar { padding: 8px 0 16px; flex-wrap: wrap; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+    .tile { background: var(--panel); border-radius: 22px; padding: 14px 16px; box-shadow: 0 0 0 1px var(--line); }
+    .tile b { display: block; font-size: 34px; font-weight: 600; letter-spacing: -.03em; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .tile span { color: var(--muted); font-size: 13px; text-transform: capitalize; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border-radius: 22px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    td:nth-child(2) { font-weight: 600; text-transform: capitalize; }
+    td:last-child { color: var(--muted); font-family: ui-monospace, monospace; font-size: 12px; }
+    #reset { width: auto; padding: 12px 22px; }
+  </style>
+</head>
+<body>
+<main id="dash">
+  <header class="bar"><strong>DropQuest</strong><span class="by"><span class="serif">Fleek merchant view</span> · Birkin 25 drop</span><span id="updated" class="by" style="margin-left:auto;font-size:13px"></span></header>
+  <h2>Stock</h2><div id="stock" class="tiles"></div>
+  <h2>Funnel</h2><div id="funnel" class="tiles"></div>
+  <h2>Grok and backend actions</h2><table><tbody id="events"></tbody></table>
+  <p class="hint">Instagram posts are self-reported. Checkout is simulated. Reviews by xAI grok.</p>
+  <button id="reset" class="cta ghost">Reset demo data</button>
+</main>
+<script src="/dashboard.js"></script>
+</body>
+</html>

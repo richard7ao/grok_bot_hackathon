@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Small shoulder baguette bag">
+  <defs>
+    <pattern id="mono" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect width="16" height="16" fill="#7A5A3C"/>
+      <path d="M3 4 h4 v4 M13 12 h-4 v-4" fill="none" stroke="#5E4329" stroke-width="1.4"/>
+    </pattern>
+  </defs>
+  <path d="M46 96 C52 40 148 40 154 96" fill="none" stroke="#5E4329" stroke-width="7" stroke-linecap="round"/>
+  <rect x="34" y="92" width="132" height="66" rx="14" fill="url(#mono)"/>
+  <path d="M34 106 Q34 92 48 92 H152 Q166 92 166 106 V132 H34 Z" fill="#6B4E33"/>
+  <path d="M34 106 Q34 92 48 92 H152 Q166 92 166 106 V132 H34 Z" fill="url(#mono)" opacity=".55"/>
+  <path d="M34 132 H166" stroke="#4E3721" stroke-width="2"/>
+  <rect x="82" y="118" width="36" height="22" rx="6" fill="#D9B45E" stroke="#9C7B34" stroke-width="1.4"/>
+  <rect x="90" y="124" width="20" height="10" rx="3" fill="none" stroke="#9C7B34" stroke-width="1.2"/>
+  <g fill="#D9B45E" stroke="#9C7B34" stroke-width="1"><circle cx="46" cy="96" r="4"/><circle cx="154" cy="96" r="4"/></g>
+</svg>
