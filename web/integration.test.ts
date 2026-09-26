@@ -49,3 +49,24 @@ test("mock serves the live drop the map needs", async () => {
   expect(live.available).toBeGreaterThan(0);
   expect(typeof live.lat).toBe("number");
 });
+
+test("mock attempts alternate retry then pass with a held reservation", async () => {
+  const form = () => {
+    const f = new FormData();
+    f.set("video", new File([new Uint8Array(10)], "clip.webm", { type: "video/webm" }));
+    f.set("transcript", "hello");
+    return f;
+  };
+  await fetch(`${base}/api/demo/reset`, { method: "POST" });
+  const first = await (await fetch(`${base}/api/drops/1/attempts`, { method: "POST", body: form() })).json();
+  expect(first.attempt.verdict).toBe("retry");
+  expect(first.attempt.feedback.length).toBeGreaterThan(0);
+  const second = await (await fetch(`${base}/api/drops/1/attempts`, { method: "POST", body: form() })).json();
+  expect(second.reservation.status).toBe("held");
+  expect(Date.parse(second.reservation.expires_at)).toBeGreaterThan(Date.now());
+});
+
+test("app.js sends the multipart fields the contract names", async () => {
+  const js = await (await fetch(`${base}/app.js`)).text();
+  for (const field of ['"video"', '"transcript"', '"duration_ms"', '"debug"', '"lat"', '"lng"', "`frame${i}`"]) expect(js).toContain(field);
+});

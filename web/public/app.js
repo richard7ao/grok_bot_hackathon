@@ -144,6 +144,155 @@ function renderDrop() {
   $("#d-why").textContent = why ?? (st.attemptsLeft == null ? "" : `${st.attemptsLeft} attempts left`);
 }
 
+// Recording
+const MIN_MS = 10000, MAX_MS = 20000, FRAME_EVERY_MS = 3000;
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let stream, recorder, chunks, frames, transcript, speech, startedAt, tick, frameTimer;
+
+$("#d-start").onclick = () => {
+  $("#r-prompt").textContent = st.drop.prompt;
+  show("s-record");
+  startCamera();
+};
+
+async function startCamera() {
+  $("#r-go").hidden = false;
+  $("#r-stop").hidden = true;
+  $("#r-clock").textContent = "0s";
+  try {
+    stream ??= await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 720, height: 1280 }, audio: true });
+  } catch {
+    $("#r-go").disabled = true;
+    $("#r-note").textContent = "Camera or microphone is blocked. Allow both from the address bar, then reload.";
+    return;
+  }
+  $("#r-live").srcObject = stream;
+  $("#r-go").disabled = false;
+  $("#r-note").textContent = SpeechRec ? "Speak clearly: Grok reads what you say." : "Speech capture needs Chrome. Grok will only see frames.";
+}
+
+function pickMime() {
+  return ["video/mp4;codecs=avc1,mp4a.40.2", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm"].find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+}
+
+$("#r-go").onclick = () => {
+  chunks = [];
+  frames = [];
+  transcript = "";
+  recorder = new MediaRecorder(stream, { mimeType: pickMime() });
+  recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  recorder.onstop = finishRecording;
+  if (SpeechRec) {
+    speech = new SpeechRec();
+    speech.lang = "en-GB";
+    speech.continuous = true;
+    speech.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) transcript += `${e.results[i][0].transcript} `;
+    };
+    speech.onend = () => recorder?.state === "recording" && speech.start(); // Chrome stops after silence
+    speech.start();
+  }
+  startedAt = performance.now();
+  recorder.start(1000);
+  frameTimer = setInterval(() => frames.length < 4 && grabFrame(), FRAME_EVERY_MS);
+  tick = setInterval(() => {
+    const ms = performance.now() - startedAt;
+    $("#r-clock").textContent = `${Math.floor(ms / 1000)}s`;
+    $("#r-stop").disabled = ms < MIN_MS;
+    if (ms >= MAX_MS) stopRecording();
+  }, 200);
+  $("#r-go").hidden = true;
+  $("#r-stop").hidden = false;
+  $("#r-stop").disabled = true;
+};
+$("#r-stop").onclick = () => stopRecording();
+
+function stopRecording() {
+  if (recorder?.state !== "recording") return;
+  clearInterval(tick);
+  clearInterval(frameTimer);
+  st.durationMs = Math.round(performance.now() - startedAt);
+  recorder.stop();
+  speech?.stop();
+}
+
+function grabFrame() {
+  const v = $("#r-live");
+  if (!v.videoWidth) return;
+  const scale = 512 / Math.max(v.videoWidth, v.videoHeight);
+  const c = Object.assign(document.createElement("canvas"), { width: Math.round(v.videoWidth * scale), height: Math.round(v.videoHeight * scale) });
+  c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+  c.toBlob((b) => b && frames.push(b), "image/jpeg", 0.8);
+}
+
+async function finishRecording() {
+  await new Promise((r) => setTimeout(r, 800)); // let the last speech result arrive
+  const type = recorder.mimeType || "video/webm";
+  st.clip = { blob: new Blob(chunks, { type }), ext: type.includes("mp4") ? "mp4" : "webm", frames: [...frames], transcript: transcript.trim(), durationMs: st.durationMs };
+  $("#p-video").src = URL.createObjectURL(st.clip.blob);
+  $("#p-transcript").textContent = st.clip.transcript || "(nothing heard, so speak up and retake)";
+  show("s-preview");
+}
+$("#p-retake").onclick = () => {
+  show("s-record");
+  startCamera();
+};
+
+// Review
+$("#p-submit").onclick = async () => {
+  const c = st.clip;
+  const f = new FormData();
+  f.set("video", c.blob, `clip.${c.ext}`);
+  c.frames.forEach((b, i) => f.set(`frame${i}`, b, `frame${i}.jpg`));
+  f.set("transcript", c.transcript);
+  f.set("duration_ms", String(c.durationMs));
+  f.set("debug", debugBox.checked ? "1" : "0");
+  if (st.pos) {
+    f.set("lat", String(st.pos.lat));
+    f.set("lng", String(st.pos.lng));
+  }
+  show("s-review");
+  $("#rv-stage").textContent = "Uploading your clip…";
+  const stage = setTimeout(() => ($("#rv-stage").textContent = "Grok is reviewing your styling idea…"), 1200);
+  try {
+    showResult(await api(`/api/drops/${st.drop.id}/attempts`, { method: "POST", body: f }));
+  } catch (e) {
+    showResult(null, e);
+  } finally {
+    clearTimeout(stage);
+  }
+};
+
+const ruleLabel = (id) => st.drop.rubric.find((c) => c.id === id)?.label ?? id;
+const NO_RETRY = ["ATTEMPTS_EXHAUSTED", "DROP_NOT_LIVE", "ALREADY_RESERVED"];
+
+function showResult(body, err) {
+  const a = body?.attempt;
+  if (a?.verdict === "pass" && body.reservation) {
+    st.res = body.reservation;
+    toast("Qualified! Your item is held.");
+    return openShare();
+  }
+  if (a && a.verdict !== "error") st.attemptsLeft = Math.max(0, (st.attemptsLeft ?? 3) - 1);
+  $("#res-title").textContent = err ? "Couldn't submit" : a.verdict === "pass" ? "Qualified, but the allocation is full" : a.verdict === "error" ? "Grok is unavailable" : "Almost there";
+  $("#res-feedback").textContent = err ? err.message : body.error === "ALREADY_RESERVED" ? "You already hold this drop." : a.feedback;
+  $("#res-criteria").replaceChildren(...(a?.criteria ?? []).map((c) => li(`${ruleLabel(c.id)}: ${c.evidence}`, c.result)));
+  const canRetry = st.attemptsLeft !== 0 && (err ? !NO_RETRY.includes(err.code) : a.verdict !== "pass");
+  $("#res-retry").hidden = !canRetry;
+  $("#res-retry").textContent = `Try again${st.attemptsLeft == null ? "" : ` (${st.attemptsLeft} left)`}`;
+  $("#res-map").hidden = canRetry;
+  show("s-result");
+}
+$("#res-retry").onclick = () => {
+  show("s-record");
+  startCamera();
+};
+
+// Replaced in Task 3.
+function openShare() {
+  show("s-share");
+}
+
 // Filled in by later tasks.
 function resume(reservation) {
   st.res = reservation;
