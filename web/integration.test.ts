@@ -80,3 +80,11 @@ test("app.js enforces the caption suffix and uses posted then buy", async () => 
   expect(posted.status).toBe("posted");
   expect((await (await fetch(`${base}/api/reservations/1/buy`, { method: "POST" })).json()).status).toBe("purchased");
 });
+
+test("dashboard page and data are served", async () => {
+  const html = await (await fetch(`${base}/dashboard.html`)).text();
+  for (const id of ["stock", "funnel", "events", "reset"]) expect(html).toContain(`id="${id}"`);
+  expect((await fetch(`${base}/dashboard.js`)).status).toBe(200);
+  const d = await (await fetch(`${base}/api/dashboard`)).json();
+  expect(Object.keys(d.stock)).toEqual(["total", "held", "posted", "sold", "available"]);
+});
