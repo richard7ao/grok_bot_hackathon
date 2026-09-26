@@ -21,6 +21,7 @@
     <div id="map"></div>
     <div class="sheet">
       <div class="handle"></div>
+      <div class="marquee" aria-hidden="true"><div id="ticker" class="marquee-track"></div></div>
       <div class="sheet-head"><h2 class="disp">Drops near you</h2><span class="pill live-dot">Live in London</span></div>
       <p id="loc-status" class="hint">Finding you…</p>
       <div id="near" class="near"></div>
@@ -43,7 +44,7 @@
       <h2>Grok checks for</h2><ul id="d-rubric" class="checks"></ul>
       <p class="rules">Pass Grok's review to hold one item for 10 minutes. Post your clip to Instagram to unlock early access at the listed price. Stock is limited, so qualifying does not guarantee a unit.</p>
       <p class="small">Demo listing — not affiliated with the brand.</p>
-      <button id="d-start" class="cta">Start challenge</button>
+      <button id="d-start" class="cta shine">Start challenge</button>
       <p id="d-why" class="hint center"></p>
     </div>
   </section>
@@ -114,7 +115,7 @@
       <ul class="rchips light">
         <li id="p-chip-outfit" data-chip="outfit">Outfit</li><li id="p-chip-styling" data-chip="styling">Styling</li><li id="p-chip-detail" data-chip="detail">Drop-card detail</li>
       </ul>
-      <button id="p-submit" class="cta">Use this take →</button>
+      <button id="p-submit" class="cta shine">Use this take →</button>
       <button id="p-retake" class="cta ghost">Retake</button>
     </div>
   </section>
@@ -200,7 +201,7 @@
       <div class="cap-head"><p class="eyebrow">Caption</p><span id="sh-count" class="small"></span><button id="sh-copy" class="mini">Copy</button></div>
       <textarea id="sh-caption" rows="3" aria-label="Caption"></textarea>
     </div>
-    <button id="sh-posted" class="cta">I posted it</button>
+    <button id="sh-posted" class="cta shine">I posted it</button>
     <p class="hint center">Posting is self-reported in this demo.</p>
   </section>
 
@@ -222,7 +223,7 @@
       <p><span>Early access fee</span><b>£0.00</b></p>
       <p class="total"><span>Total</span><b id="b-total"></b></p>
     </div>
-    <button id="b-buy" class="cta">Buy now</button>
+    <button id="b-buy" class="cta shine">Buy now</button>
     <p class="small center">Simulated checkout — no payment taken.</p>
   </section>
 
@@ -230,7 +231,7 @@
     <button class="back-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
     <span class="pill sage">Early access · purchased</span>
     <h2 class="yours">Yours. Officially.</h2>
-    <div class="card polaroid"><div class="ph"><img id="dn-img" src="/img/birkin.svg" alt=""></div><p class="tag">DropQuest collectible</p><h1 id="dn-title" class="disp"></h1><p class="small">Order <span id="dn-order"></span></p></div>
+    <div class="card polaroid"><i class="spark" aria-hidden="true"></i><i class="spark" aria-hidden="true"></i><i class="spark" aria-hidden="true"></i><i class="spark" aria-hidden="true"></i><div class="ph"><img id="dn-img" src="/img/birkin.svg" alt=""></div><p class="tag">DropQuest collectible</p><h1 id="dn-title" class="disp"></h1><p class="small">Order <span id="dn-order"></span></p></div>
     <div class="card pickup">
       <svg id="dn-qr" class="qr" viewBox="-1 -1 23 23" aria-label="Pickup code"><path/></svg>
       <div><p class="eyebrow">Pickup</p><p>Show this code at the Fleek venue and we'll hand it over, bagged and ready.</p><p class="small">Payment was simulated.</p></div>
@@ -242,6 +243,7 @@
   <p id="toast" class="toast" role="status" hidden></p>
 </main>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

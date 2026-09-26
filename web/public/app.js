@@ -11,6 +11,83 @@ const PARENT = { "s-drop": "s-map", "s-record": "s-drop", "s-preview": "s-record
 const CAM_SCREENS = ["s-record", "s-preview"];
 let current = null;
 
+// Motion: vanilla Motion (window.Motion, motion@11 UMD) for springs, Web Animations API for the rest
+// and as the fallback when the CDN script is missing. Every effect is a no-op under reduced motion.
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
+const EASE_OUT = "cubic-bezier(.22,1,.36,1)";
+function fx(node, keyframes, ms = 320, delay = 0) {
+  if (REDUCED.matches || !node?.animate) return;
+  node.animate(keyframes, { duration: ms, delay, easing: EASE_OUT, fill: "backwards" });
+}
+function springFx(node, keyframes) {
+  if (REDUCED.matches || !node) return;
+  if (window.Motion?.animate) return window.Motion.animate(node, keyframes, { type: "spring", stiffness: 520, damping: 22 });
+  node.animate?.(keyframes, { duration: 380, easing: "cubic-bezier(.34,1.56,.64,1)" });
+}
+const BLUR_IN = { opacity: [0, 1], filter: ["blur(6px)", "blur(0)"], transform: ["translateY(12px)", "none"] };
+// 21st.dev "Animated List" / Magic UI stagger: children rise in 40 ms apart.
+const staggerIn = (nodes, step = 40, from = 0) => [...nodes].slice(0, 10).forEach((n, i) => fx(n, BLUR_IN, 360, from + i * step));
+
+// 21st.dev "Text Animate" (blur-in by word). textContent is unchanged; words become inline spans.
+function textIn(node) {
+  if (REDUCED.matches || !node?.textContent.trim()) return;
+  const words = node.textContent.split(/(\s+)/);
+  node.replaceChildren(...words.map((w) => (/^\s+$/.test(w) ? w : el("span", "word", w))));
+  node.querySelectorAll(".word").forEach((w, i) => fx(w, { opacity: [0, 1], filter: ["blur(8px)", "blur(0)"], transform: ["translateY(6px)", "none"] }, 420, 60 + i * 55));
+}
+
+// 21st.dev "Number Ticker": count a price (in pence) up from 0.
+function tickNumber(node, to, format, ms = 650) {
+  node.textContent = format(to);
+  if (REDUCED.matches) return;
+  const t0 = performance.now();
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / ms);
+    node.textContent = format(p < 1 ? Math.round((to * (1 - (1 - p) ** 3)) / 100) * 100 : to); // whole pounds while ticking
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+// Number Ticker digit roll: only the characters that changed slide down into place.
+function rollText(node, text) {
+  const prev = node.textContent;
+  if (prev === text) return;
+  if (REDUCED.matches || prev.length !== text.length) return (node.textContent = text);
+  node.replaceChildren(...[...text].map((ch) => el("span", "digit", ch)));
+  [...text].forEach((ch, i) => ch !== prev[i] && fx(node.children[i], { transform: ["translateY(-55%)", "none"], opacity: [0, 1] }, 260));
+}
+
+// Magic UI "Confetti": ~1 s DOM burst in brand ink, cobalt and grey, removed when done.
+function confetti(origin) {
+  if (REDUCED.matches) return;
+  const r = (origin ?? document.body).getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + Math.min(r.height / 2, 160);
+  const colors = [COBALT, "#111", "#BDBDBD", COBALT];
+  for (let i = 0; i < 36; i++) {
+    const p = el("i", "confetti");
+    p.style.cssText = `left:${x}px;top:${y}px;background:${colors[i % 4]}`;
+    document.body.append(p);
+    const a = (i / 36) * Math.PI * 2 + Math.random() * 0.3, v = 90 + Math.random() * 110;
+    const dx = Math.cos(a) * v, dy = Math.sin(a) * v - 120, spin = Math.random() * 720 - 360;
+    p.animate(
+      [{ transform: "translate(0,0) rotate(0)", opacity: 1 }, { transform: `translate(${dx}px,${dy}px) rotate(${spin / 2}deg)`, opacity: 1, offset: 0.45 }, { transform: `translate(${dx * 1.2}px,${dy + 260}px) rotate(${spin}deg)`, opacity: 0 }],
+      { duration: 1000 + Math.random() * 250, easing: "cubic-bezier(.2,.7,.4,1)" },
+    ).onfinish = () => p.remove();
+  }
+}
+
+// Per-screen entrance: 21st.dev "Blur Fade" on the incoming screen, then its headline and cards.
+const HEADLINES = { "s-drop": "#d-title", "s-result": "#res-title", "s-share": "#s-share h1, #s-share .ring-label .small", "s-done": "#s-done .yours" };
+function enter(id) {
+  const screen = document.getElementById(id);
+  if (id === "s-map") return springFx($("#s-map .sheet"), { transform: ["translateY(100%)", "translateY(0%)"] }); // bottom sheet springs up
+  if (CAM_SCREENS.includes(id)) return fx(screen, { opacity: [0, 1] }, 200);
+  fx(screen, { opacity: [0, 1], filter: ["blur(6px)", "blur(0)"], transform: ["translateY(12px)", "none"] }, 320);
+  staggerIn(screen.querySelectorAll(":scope > .card, :scope > .bubble, :scope > .held-row, :scope > .checklist, :scope > .polaroid, .pad > .prompt, .pad > .price"), 45, 90);
+  if (HEADLINES[id]) document.querySelectorAll(HEADLINES[id]).forEach(textIn);
+}
+
 function show(id) {
   const from = current;
   current = id;
@@ -21,6 +98,7 @@ function show(id) {
   $("#app").classList.toggle("cam", CAM_SCREENS.includes(id));
   if (id !== "s-preview") $("#p-video").pause();
   if (id === "s-map") setTimeout(() => map.resize(), 0);
+  if (from !== id) enter(id);
 }
 
 function toast(msg) {
@@ -108,6 +186,16 @@ function drawDrops() {
   st.drops.forEach((d) => bounds.extend([d.lng, d.lat]));
   if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: { top: 60, bottom: 260, left: 40, right: 40 }, maxZoom: 15, duration: 0 });
   renderNear();
+  renderTicker();
+}
+
+// Magic UI "Marquee": live drops, then coming soon, as a seamless loop (two copies, track slides -50%).
+const shortTitle = (d) => d.title.split(" — ")[0].replace(/^(Pre-loved|Vintage) /, "");
+function renderTicker() {
+  const live = st.drops.filter((d) => d.status === "live").map(shortTitle);
+  const soon = st.drops.filter((d) => d.status !== "live").map(shortTitle);
+  const text = ["LIVE NOW", ...live, ...(soon.length ? [`Coming soon: ${soon[0]}`, ...soon.slice(1)] : [])].join(" · ") + " · ";
+  $("#ticker").replaceChildren(el("span", "", text), el("span", "", text));
 }
 
 // "Drops near you" row: live first (nearest first when located), then coming soon.
@@ -181,6 +269,7 @@ async function openDrop(id) {
   st.attemptsLeft = null;
   renderDrop();
   show("s-drop");
+  tickNumber($("#d-price"), st.drop.price_pence, pounds);
   if (st.drop.status !== "live") return;
   try {
     const s = await api(`/api/drops/${id}/state`);
@@ -206,6 +295,7 @@ function lockReason() {
 function renderDrop() {
   const d = st.drop;
   $("#d-img").src = d.image_url;
+  $("#s-drop").classList.toggle("live", d.status === "live");
   $("#d-brand").textContent = `${d.brand ?? "Fleek"} · ${d.status === "live" ? "Live drop" : `Launches ${fmtDate(d.public_launch_at)}`}`;
   $("#d-title").textContent = d.title;
   $("#d-desc").textContent = d.description ?? "";
@@ -242,7 +332,11 @@ function lightChips(text) {
   const words = new Set(said.match(/\p{L}+/gu) ?? []);
   const factWords = (st.drop?.facts ?? []).join(" ").toLowerCase().match(/\p{L}{5,}/gu) ?? [];
   const on = { outfit: HINTS.outfit.test(said), styling: HINTS.styling.test(said), detail: factWords.some((w) => words.has(w)) };
-  document.querySelectorAll("[data-chip]").forEach((c) => c.classList.toggle("on", on[c.dataset.chip]));
+  document.querySelectorAll("[data-chip]").forEach((c) => {
+    const lit = Boolean(on[c.dataset.chip]);
+    if (lit && !c.classList.contains("on")) springFx(c, { transform: ["scale(.8)", "scale(1)"] }); // chip pops as it lights
+    c.classList.toggle("on", lit);
+  });
 }
 
 $("#d-start").onclick = () => {
@@ -502,7 +596,8 @@ function showResult(body, err) {
   if (a?.verdict === "pass" && body.reservation) {
     st.res = body.reservation;
     toast("Passed. Your item is held.");
-    return openShare();
+    openShare();
+    return confetti($("#s-share .ring-wrap"));
   }
   $("#s-result").classList.remove("expired");
   $("#res-title").textContent = err ? "Couldn't submit" : a.verdict === "pass" ? "Qualified, but the allocation is full" : a.verdict === "error" ? "Grok is unavailable" : "Almost there";
@@ -513,6 +608,7 @@ function showResult(body, err) {
   $("#res-retry").textContent = `Try again${st.attemptsLeft == null ? "" : ` (${st.attemptsLeft} left)`}`;
   $("#res-map").hidden = canRetry;
   show("s-result");
+  staggerIn($("#res-criteria").children, 70, 260);
 }
 $("#res-retry").onclick = () => {
   show("s-record");
@@ -599,6 +695,7 @@ $("#b-buy").onclick = async () => {
   try {
     st.res = await api(`/api/reservations/${st.res.id}/buy`, { method: "POST" });
     openDone();
+    confetti($(".polaroid"));
   } catch (e) {
     onReservationError(e);
   } finally {
@@ -677,7 +774,8 @@ function startTimer(sel, totalMs, ring) {
     const ms = Date.parse(st.res.expires_at) - Date.now();
     if (ms <= 0) return showExpired();
     const s = Math.ceil(ms / 1000);
-    $(sel).textContent = $("#d-hold-time").textContent = fmtClock(s * 1000);
+    rollText($(sel), fmtClock(s * 1000));
+    $("#d-hold-time").textContent = fmtClock(s * 1000);
     if (ring) $(ring).style.strokeDashoffset = String(100 - Math.min(100, (ms / totalMs) * 100));
   };
   draw();
