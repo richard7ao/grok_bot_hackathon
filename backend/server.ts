@@ -1,6 +1,8 @@
 import { mkdirSync } from "node:fs";
 import { basename, join } from "node:path";
-import { ApiError, buy, claimHold, createAttempt, dashboard, dropState, getDrop, getReservation, listDrops, markPosted, openDb, reset, saveReview } from "./db";
+import { readJson, validateCampaign } from "./campaigns";
+import { ApiError, buy, campaignDetail, claimHold, createAttempt, createCampaign, dashboard, dropState, getDrop, getReservation, listCampaigns, listDrops, markPosted, openDb, reset, saveReview, updateCampaign } from "./db";
+import { draftChallenge, parseDraftInput } from "./draft";
 import { errorReview, reviewAttempt, type Review } from "./review";
 
 const UPLOADS = process.env.UPLOADS_DIR ?? "uploads";
@@ -97,6 +99,20 @@ const server = Bun.serve({
         const body = (await req.json().catch(() => ({}))) as { allocation_total?: number };
         reset(db, body.allocation_total);
         return Response.json({ ok: true });
+      }),
+    },
+    "/api/campaigns": {
+      GET: handle(() => Response.json({ campaigns: listCampaigns(db) })),
+      POST: handle(async (req) => Response.json(createCampaign(db, validateCampaign(await readJson(req))), { status: 201 })),
+    },
+    "/api/campaigns/draft": { POST: handle(async (req) => Response.json(await draftChallenge(parseDraftInput(await readJson(req))))) },
+    "/api/campaigns/:id": {
+      GET: handle((req) => Response.json(campaignDetail(db, idOf(req)))),
+      PATCH: handle(async (req) => {
+        const existing = getDrop(db, idOf(req));
+        if (!existing) throw new ApiError(404, "NOT_FOUND", "No such campaign");
+        const patch = await readJson(req);
+        return Response.json(updateCampaign(db, existing.id, validateCampaign({ ...existing, ...patch })));
       }),
     },
     "/uploads/:file": {
