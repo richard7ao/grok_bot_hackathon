@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Black trail running sneaker">
+  <path d="M22 132 Q20 104 40 98 L76 86 Q92 70 110 72 L128 96 Q160 104 176 118 Q184 126 180 138 L24 140 Z" fill="#1E1E1E"/>
+  <path d="M22 138 L180 138 Q182 150 172 152 L30 152 Q20 150 22 138 Z" fill="#3A3A3A"/>
+  <path d="M26 152 L172 152 L168 160 L32 160 Z" fill="#111"/>
+  <path d="M40 150 L52 160 M64 150 L76 160 M88 150 L100 160 M112 150 L124 160 M136 150 L148 160" stroke="#555" stroke-width="3"/>
+  <path d="M60 128 L96 94 M76 130 L112 98 M92 132 L128 104" stroke="#4A4A4A" stroke-width="5" stroke-linecap="round"/>
+  <path d="M80 86 L118 110" stroke="#8C8C8C" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 6"/>
+  <path d="M110 72 Q116 60 126 62 L132 94" fill="none" stroke="#2C2C2C" stroke-width="6" stroke-linecap="round"/>
+  <path d="M150 112 Q168 118 176 128" fill="none" stroke="#5C5C5C" stroke-width="3" stroke-linecap="round"/>
+</svg>

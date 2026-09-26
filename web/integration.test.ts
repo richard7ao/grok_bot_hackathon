@@ -26,13 +26,13 @@ const SCREENS = ["s-map", "s-drop", "s-record", "s-preview", "s-review", "s-resu
 test("index has every screen, Leaflet and app.js", async () => {
   const html = await (await fetch(`${base}/`)).text();
   for (const id of SCREENS) expect(html).toContain(`id="${id}"`);
-  expect(html).toContain("leaflet@1.9.4/dist/leaflet.js");
+  expect(html).toContain("maplibre-gl@4.7.1/dist/maplibre-gl.js");
   expect(html).toContain('src="/app.js"');
   expect(html).toContain('id="debug"');
 });
 
 test("static assets are served", async () => {
-  for (const path of ["/app.js", "/style.css", "/img/birkin.svg", "/img/baguette.svg", "/img/flats.svg"]) expect((await fetch(base + path)).status).toBe(200);
+  for (const path of ["/app.js", "/style.css", "/img/birkin.svg", "/img/baguette.svg", "/img/flats.svg", "/img/shell.svg", "/img/sneaker.svg", "/img/shirt.svg"]) expect((await fetch(base + path)).status).toBe(200);
   expect((await fetch(`${base}/nope.js`)).status).toBe(404);
 });
 
@@ -41,6 +41,23 @@ test("app.js only calls contract routes", async () => {
   const calls = [...js.matchAll(/api\(`([^`]+)`/g), ...js.matchAll(/api\("([^"]+)"/g)].map((m) => m[1].replace(/\$\{[^}]+\}/g, ":id"));
   const allowed = ["/api/drops", "/api/drops/:id/state", "/api/drops/:id/attempts", "/api/reservations/:id/posted", "/api/reservations/:id/buy"];
   for (const c of calls) expect(allowed).toContain(c);
+});
+
+// The review verdict is held back for a timed reveal; a demo button must be able to skip the wait,
+// and a reload mid-wait must be able to recover it from localStorage.
+test("review wait screen, demo fast-forward and reload recovery are wired", async () => {
+  const html = await (await fetch(`${base}/`)).text();
+  expect(html).toContain('id="s-wait"');
+  expect(html).toContain('id="w-skip"');
+  const js = await (await fetch(`${base}/app.js`)).text();
+  expect(js).toContain("REVIEW_WAIT_MS");
+  expect(js).toContain("dq_pending");
+  expect(js.indexOf("loadPending()")).toBeLessThan(js.indexOf("/state`"));
+});
+
+test("every drop image in the mock is served", async () => {
+  const { drops } = await (await fetch(`${base}/api/drops`)).json();
+  for (const d of drops) expect((await fetch(base + d.image_url)).status).toBe(200);
 });
 
 test("mock serves the live drop the map needs", async () => {

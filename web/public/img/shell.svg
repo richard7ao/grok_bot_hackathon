@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Technical hooded shell jacket">
+  <path d="M70 44 L34 62 L18 164 L42 170 L56 98 Z" fill="#1F6F78"/>
+  <path d="M130 44 L166 62 L182 164 L158 170 L144 98 Z" fill="#1F6F78"/>
+  <path d="M70 44 Q100 12 130 44 L144 98 L148 188 L52 188 L56 98 Z" fill="#2A8591"/>
+  <path d="M74 46 Q100 20 126 46 Q112 62 100 62 Q88 62 74 46 Z" fill="#1B5E66"/>
+  <path d="M100 62 L100 188" stroke="#12454B" stroke-width="3"/>
+  <path d="M66 112 L90 104 M134 112 L110 104" stroke="#12454B" stroke-width="3" stroke-linecap="round"/>
+  <path d="M60 150 L140 150" stroke="#1B5E66" stroke-width="2" stroke-dasharray="4 3"/>
+  <path d="M18 164 L42 170 L41 176 L17 170 Z M182 164 L158 170 L159 176 L183 170 Z" fill="#12454B"/>
+  <rect x="96" y="76" width="8" height="10" rx="2" fill="#D9DDE0"/>
+</svg>

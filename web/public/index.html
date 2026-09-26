@@ -5,24 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fleek DropQuest</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <main id="app">
   <header class="bar">
-    <strong>DropQuest</strong><span class="by serif">by Fleek</span>
+    <strong>DropQuest</strong><span class="by">by Fleek</span>
     <label class="debug"><input type="checkbox" id="debug"> at venue (demo)</label>
   </header>
   <div id="stories" class="stories" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
   <section id="s-map" class="screen">
     <div id="map"></div>
-    <div class="sheet glass">
+    <div class="sheet">
       <div class="handle"></div>
-      <p class="eyebrow">Drops near you · Shoreditch</p>
+      <div class="sheet-head"><h2 class="disp">Drops near you</h2><span class="pill live-dot">Live in London</span></div>
       <p id="loc-status" class="hint">Finding you…</p>
+      <div id="near" class="near"></div>
     </div>
   </section>
 
@@ -32,8 +33,9 @@
       <img id="d-img" class="product" alt="Drop item">
     </div>
     <div class="pad">
-      <p class="eyebrow">Live drop · pre-loved</p>
+      <p id="d-brand" class="eyebrow">Live drop · pre-loved</p>
       <h1 id="d-title" class="title"></h1>
+      <p id="d-desc" class="desc"></p>
       <div class="price"><b id="d-price"></b><span id="d-stock" class="pill sage"></span></div>
       <div class="prompt"><h2>Your challenge</h2><p id="d-prompt"></p></div>
       <h2>Drop card</h2><ul id="d-facts" class="chips"></ul>
@@ -65,51 +67,118 @@
     <p id="rv-stage" role="status">Uploading your clip…</p>
   </section>
 
-  <section id="s-result" class="screen" hidden>
-    <div class="dmhead"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">reviewed your take · just now</div></div></div>
+  <section id="s-wait" class="screen" hidden>
+    <!-- Honest by design: Grok's review has already run on the server and its verdict is stored
+         in this browser (st.pending + localStorage dq_pending). Only the reveal waits REVIEW_WAIT_MS;
+         the queue number and stage labels are presentational. "Fast-forward" reveals it now. -->
+    <div class="dmhead"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">reviewing your take…</div></div></div>
+    <div class="mytake"><img id="w-thumb" alt="Your clip"><span id="w-len">▶ my take</span></div>
     <div class="bubble">
-      <h1 id="res-title" class="serif"></h1>
+      <span class="disp big">Grok is reviewing your take</span>
+      <p id="w-stage" role="status">Watching your clip…</p>
+      <span class="typing" aria-hidden="true"><i></i><i></i><i></i></span>
+    </div>
+    <div class="card queue">
+      <p id="w-queue">You're #5 in the queue</p>
+      <div class="track"><i id="w-bar"></i></div>
+      <p class="small">Reviews take about a minute. You can keep this tab open.</p>
+    </div>
+    <p id="w-held" class="pill sage held" hidden>Your spot is being held while Grok reviews</p>
+    <button id="w-skip" class="cta ghost demo">⏩ Fast-forward review (demo)</button>
+  </section>
+
+  <section id="s-result" class="screen" hidden>
+    <div class="dmhead dm-only"><div class="avatar">G</div><div><strong>Grok</strong><div class="small">reviewed your take · just now</div></div></div>
+    <div class="bubble dm-only">
+      <h1 id="res-title" class="disp"></h1>
       <p id="res-feedback"></p>
     </div>
-    <ul id="res-criteria" class="criteria"></ul>
+    <ul id="res-criteria" class="criteria dm-only"></ul>
+    <div id="res-expired" class="center">
+      <svg class="hourglass" viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="56" fill="#F2F2F2"/>
+        <path d="M40 26h40M40 94h40" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <path d="M44 28c0 18 16 22 16 32s-16 14-16 32h32c0-18-16-22-16-32s16-14 16-32z" fill="#fff" stroke="#111" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M50 88c2-8 10-10 10-14 0 4 8 6 10 14z" fill="#1B5CFF"/>
+        <circle cx="92" cy="34" r="6" fill="#1B5CFF"/>
+      </svg>
+      <h1 class="yours">Your hold ended</h1>
+      <p id="ex-line" class="hint"></p>
+      <h2>See other drops</h2>
+      <ul id="ex-others" class="others"></ul>
+    </div>
     <button id="res-retry" class="cta" hidden>Try again</button>
     <button id="res-map" class="cta ghost" data-go="s-map" hidden>Back to map</button>
   </section>
 
   <section id="s-share" class="screen tint" hidden>
     <p class="eyebrow">Passed · Grok approved</p>
-    <p class="timer"><span class="serif">Held for</span> <span id="sh-timer" class="count"></span></p>
     <h1>Post your Reel to unlock</h1>
-    <ol class="steps">
-      <li><a id="sh-download" download>Download your clip</a></li>
-      <li>Copy the caption <button id="sh-copy" class="link">Copy</button></li>
-      <li><a href="https://www.instagram.com/" target="_blank" rel="noopener">Open Instagram</a> and post it as a Reel</li>
+    <div class="held-row">
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="54"/><circle id="sh-ring" class="ring-fg" cx="60" cy="60" r="54" pathLength="100"/></svg>
+        <div class="ring-label"><span class="small">Held for</span><span id="sh-timer" class="disp ring-count"></span></div>
+      </div>
+      <div class="reel">
+        <video id="sh-reel" autoplay muted loop playsinline></video>
+        <div class="reel-top"><b>Reels</b></div>
+        <div class="reel-side" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-3.2-6.4L20 4v5h-5"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></svg>
+        </div>
+        <div class="reel-meta"><p class="reel-user"><i></i>@you <span>Follow</span></p><p id="sh-reel-cap" class="reel-cap"></p><p class="reel-audio">♫ Original audio</p></div>
+      </div>
+    </div>
+    <ol id="sh-steps" class="checklist">
+      <li id="sh-step-dl"><span class="tick"></span><div><b>Download clip</b><small>Save your take to your camera roll</small></div><a id="sh-download" class="mini" download>Save</a></li>
+      <li id="sh-step-copy"><span class="tick"></span><div><b>Copy caption</b><small>Keeps the #ad disclosure</small></div><button id="sh-copy-step" class="mini">Copy</button></li>
+      <li id="sh-step-ig"><span class="tick"></span><div><b>Post on Instagram</b><small>Share it as a Reel</small></div><a id="sh-ig" class="mini ig" href="https://www.instagram.com/" target="_blank" rel="noopener">Open</a></li>
     </ol>
-    <div class="card"><p class="eyebrow">Caption</p><textarea id="sh-caption" rows="3" aria-label="Caption"></textarea></div>
+    <div class="card caption">
+      <div class="cap-head"><p class="eyebrow">Caption</p><span id="sh-count" class="small"></span><button id="sh-copy" class="mini">Copy</button></div>
+      <textarea id="sh-caption" rows="3" aria-label="Caption"></textarea>
+    </div>
     <button id="sh-posted" class="cta">I posted it</button>
     <p class="hint center">Posting is self-reported in this demo.</p>
   </section>
 
   <section id="s-buy" class="screen tint" hidden>
-    <p class="eyebrow">Early access unlocked</p>
-    <p class="timer"><span class="serif">Early access ends in</span> <span id="b-timer" class="count"></span></p>
-    <div class="hero"><img class="product" src="/img/birkin.svg" alt=""></div>
+    <div class="buy-top"><p class="eyebrow">Early access unlocked</p><span class="pill sage timer-pill">Ends in <b id="b-timer" class="tnum"></b></span></div>
+    <div class="hero"><img id="b-img" class="product" src="/img/birkin.svg" alt=""></div>
+    <p id="b-brand" class="eyebrow"></p>
     <h1 id="b-title" class="title"></h1>
     <p id="b-price" class="price"></p>
-    <button id="b-buy" class="cta">Buy now (simulated checkout)</button>
+    <p id="b-launch" class="pill beige"></p>
+    <div class="seg" role="radiogroup" aria-label="Fulfilment">
+      <label><input type="radio" name="b-fulfil" value="pickup" checked>Pickup at Fleek venue</label>
+      <label><input type="radio" name="b-fulfil" value="delivery">Delivery</label>
+    </div>
+    <div class="card summary">
+      <p class="eyebrow">Order summary</p>
+      <p><span id="b-sum-item"></span><b id="b-sum-price"></b></p>
+      <p><span>Early access fee</span><b>£0.00</b></p>
+      <p class="total"><span>Total</span><b id="b-total"></b></p>
+    </div>
+    <button id="b-buy" class="cta">Buy now</button>
+    <p class="small center">Simulated checkout — no payment taken.</p>
   </section>
 
   <section id="s-done" class="screen glow center" hidden>
     <span class="pill sage">Early access · purchased</span>
-    <h2 class="yours">Yours. <span class="serif">Officially.</span></h2>
-    <div class="card polaroid"><div class="ph"><img src="/img/birkin.svg" alt=""></div><p class="tag">DropQuest collectible</p><h1 id="dn-title" class="serif"></h1><p class="small">Early access · purchased</p></div>
-    <p class="card pickup">Pick up at the Fleek venue. Payment was simulated.</p>
-    <button class="cta ghost" data-go="s-map">Back to map</button>
+    <h2 class="yours">Yours. Officially.</h2>
+    <div class="card polaroid"><div class="ph"><img id="dn-img" src="/img/birkin.svg" alt=""></div><p class="tag">DropQuest collectible</p><h1 id="dn-title" class="disp"></h1><p class="small">Order <span id="dn-order"></span></p></div>
+    <div class="card pickup">
+      <svg id="dn-qr" class="qr" viewBox="-1 -1 23 23" aria-label="Pickup code"><path/></svg>
+      <div><p class="eyebrow">Pickup</p><p>Show this code at the Fleek venue and we'll hand it over, bagged and ready.</p><p class="small">Payment was simulated.</p></div>
+    </div>
+    <button id="dn-share" class="cta ghost">Share your collectible</button>
+    <button class="cta" data-go="s-map">Back to map</button>
   </section>
 
   <p id="toast" class="toast" role="status" hidden></p>
 </main>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
