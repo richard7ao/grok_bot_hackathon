@@ -244,6 +244,338 @@
       "available": 0,
       "hold_minutes": 10,
       "public_launch_at": "2026-10-17T10:00:00.000Z"
+    },
+    {
+      "id": 9,
+      "brand": "Fleek Watches",
+      "title": "Omega x Swatch MoonSwatch — Mission to the Moon",
+      "description": "The Omega x Swatch Bioceramic MoonSwatch that started the queues, unworn with box.",
+      "status": "live",
+      "price_pence": 26000,
+      "image_url": "/img/photos/moonswatch.jpg",
+      "lat": 51.5115,
+      "lng": -0.141,
+      "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the MoonSwatch. Include one detail about it from the drop card.",
+      "facts": [
+        "Bioceramic case",
+        "42 mm chronograph",
+        "Speedmaster-inspired dial",
+        "Velcro strap",
+        "Unworn, with box"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the MoonSwatch"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 6,
+      "available": 6,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-07T10:00:00.000Z"
+    },
+    {
+      "id": 10,
+      "brand": "Fleek Football",
+      "title": "Nike x Palace England 2026 Shirt",
+      "description": "The Nike x Palace England World Cup shirt, dark base with the stained-glass graphic.",
+      "status": "live",
+      "price_pence": 12000,
+      "image_url": "/img/photos/england.jpg",
+      "lat": 51.5118,
+      "lng": -0.1356,
+      "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the shirt. Include one detail about it from the drop card.",
+      "facts": [
+        "Stained-glass all-over graphic",
+        "Classic polo collar",
+        "Red detailing",
+        "Nike x Palace, 2026 World Cup",
+        "Size M, tags on"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the shirt"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 10,
+      "available": 10,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-08T10:00:00.000Z"
+    },
+    {
+      "id": 11,
+      "brand": "Fleek Watches",
+      "title": "Swatch x AP Royal Pop",
+      "description": "The Swatch x Audemars Piguet Royal Pop pocket watch from the May 2026 release.",
+      "status": "live",
+      "price_pence": 45000,
+      "image_url": "/img/photos/royalpop.jpg",
+      "lat": 51.51,
+      "lng": -0.147,
+      "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Royal Pop. Include one detail about it from the drop card.",
+      "facts": [
+        "Convertible pocket watch",
+        "Octagonal Royal Oak-inspired bezel",
+        "Bright 80s POP colourway",
+        "Bioceramic",
+        "Unworn, with pouch"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the Royal Pop"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 4,
+      "available": 4,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-09T10:00:00.000Z"
+    },
+    {
+      "id": 12,
+      "brand": "Fleek Collectibles",
+      "title": "Labubu The Monsters — Secret Edition",
+      "description": "A secret-edition Labubu from The Monsters series, checked and authenticated.",
+      "status": "live",
+      "price_pence": 6500,
+      "image_url": "/img/photos/labubu.jpg",
+      "lat": 51.5149,
+      "lng": -0.1447,
+      "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Labubu. Include one detail about it from the drop card.",
+      "facts": [
+        "Pop Mart The Monsters series",
+        "Secret edition",
+        "Vinyl face, plush body",
+        "Authenticity card included",
+        "Sealed box opened for check"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the Labubu"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 12,
+      "available": 12,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-02T10:00:00.000Z"
+    },
+    {
+      "id": 13,
+      "brand": "Fleek Watches",
+      "title": "Rolex Submariner Date 126610LN — Pre-owned",
+      "description": "A full-set 2022 Rolex Submariner Date, serviced and authenticated.",
+      "status": "live",
+      "price_pence": 1295000,
+      "image_url": "/img/photos/rolex-sub.jpg",
+      "lat": 51.5203,
+      "lng": -0.1086,
+      "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Submariner. Include one detail about it from the drop card.",
+      "facts": [
+        "Oystersteel 41 mm case",
+        "Black Cerachrom bezel",
+        "Calibre 3235",
+        "2022, full set",
+        "Serviced and authenticated"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the Submariner"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 2,
+      "available": 2,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-10T10:00:00.000Z"
+    },
+    {
+      "id": 14,
+      "brand": "Fleek Watches",
+      "title": "Rolex Datejust 36 — Wimbledon Dial",
+      "description": "A pre-owned two-tone Datejust 36 with the Wimbledon dial.",
+      "status": "preview",
+      "price_pence": 980000,
+      "image_url": "/img/photos/rolex-datejust.jpg",
+      "lat": 51.501,
+      "lng": -0.16,
+      "radius_m": 150,
+      "prompt": "Coming soon",
+      "facts": [],
+      "rubric": [],
+      "allocation_total": 0,
+      "available": 0,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-14T10:00:00.000Z"
+    },
+    {
+      "id": 15,
+      "brand": "Fleek Luxe",
+      "title": "Jacquemus Le Bambino — Black",
+      "description": "The tiny Jacquemus Le Bambino everyone carries, barely used.",
+      "status": "live",
+      "price_pence": 52000,
+      "image_url": "/img/photos/bambino.jpg",
+      "lat": 51.4875,
+      "lng": -0.1687,
+      "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Bambino. Include one detail about it from the drop card.",
+      "facts": [
+        "Smooth black leather",
+        "Mini top-handle shape",
+        "Detachable shoulder strap",
+        "Gold-tone logo plate",
+        "Barely carried"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the Bambino"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 5,
+      "available": 5,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-06T10:00:00.000Z"
+    },
+    {
+      "id": 16,
+      "brand": "Fleek Luxe",
+      "title": "Coach Tabby 26 — Burgundy",
+      "description": "The Coach Tabby 26, the Gen Z revival bag, in burgundy.",
+      "status": "live",
+      "price_pence": 32000,
+      "image_url": "/img/photos/tabby.jpg",
+      "lat": 51.5143,
+      "lng": -0.1265,
+      "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Tabby. Include one detail about it from the drop card.",
+      "facts": [
+        "Burgundy leather",
+        "Signature C turn-lock",
+        "Chain and leather strap",
+        "26 cm size",
+        "Pre-loved, excellent"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the Tabby"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 6,
+      "available": 6,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-05T10:00:00.000Z"
+    },
+    {
+      "id": 17,
+      "brand": "Fleek Luxe",
+      "title": "Loewe Puzzle Mini — Sand",
+      "description": "A Loewe Puzzle Mini in sand calfskin.",
+      "status": "preview",
+      "price_pence": 185000,
+      "image_url": "/img/photos/puzzle.jpg",
+      "lat": 51.5126,
+      "lng": -0.1449,
+      "radius_m": 150,
+      "prompt": "Coming soon",
+      "facts": [],
+      "rubric": [],
+      "allocation_total": 0,
+      "available": 0,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-16T10:00:00.000Z"
     }
   ]
 }

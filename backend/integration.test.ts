@@ -62,8 +62,8 @@ test("drops match the contract and show live stock", async () => {
   expect(keys(body.drops[0])).toEqual(keys(fx.drops[0]));
   const live = body.drops.find((d: any) => d.status === "live");
   expect(live.available).toBe(3);
-  expect(body.drops.length).toBe(8);
-  expect(body.drops.filter((d: any) => d.status === "preview").length).toBe(4);
+  expect(body.drops.length).toBe(17);
+  expect(body.drops.filter((d: any) => d.status === "preview").length).toBe(6);
 });
 
 test("pass → held → posted → purchased; repeated taps return the same state; dashboard counts it", async () => {
@@ -89,7 +89,7 @@ test("pass → held → posted → purchased; repeated taps return the same stat
   expect(keys(dash)).toEqual(keys(fx));
   expect(keys(dash.stock)).toEqual(keys(fx.stock));
   expect(keys(dash.funnel)).toEqual(keys(fx.funnel));
-  expect(dash.stock).toEqual({ total: 12, held: 0, posted: 0, sold: 1, available: 11 });
+  expect(dash.stock).toEqual({ total: 33, held: 0, posted: 0, sold: 1, available: 32 });
   expect(dash.funnel.purchased).toBe(1);
   expect(dash.events.map((e: any) => e.type)).toContain("hold_claimed");
 });
@@ -175,7 +175,7 @@ test("last unit: two simultaneous passing entries produce exactly one hold", asy
   const bodies = await Promise.all([a.json(), b.json()]);
   expect(bodies.filter((x) => x.reservation).length).toBe(1);
   const dash = await (await fetch(`${api}/api/dashboard`)).json();
-  expect(dash.stock).toEqual({ total: 4, held: 1, posted: 0, sold: 0, available: 3 });
+  expect(dash.stock).toEqual({ total: 11, held: 1, posted: 0, sold: 0, available: 10 });
 });
 
 test("expired hold frees stock and blocks posting", async () => {
@@ -240,7 +240,7 @@ test("campaign list and detail match the contract", async () => {
   expect(keys(list)).toEqual(keys(fx));
   expect(keys(list.campaigns[0])).toEqual(keys(fx.campaigns[0]));
   expect(keys(list.campaigns[0].stats)).toEqual(keys(fx.campaigns[0].stats));
-  expect(list.campaigns.map((c: any) => c.id)).toEqual([8, 7, 6, 5, 4, 3, 2, 1]);
+  expect(list.campaigns.map((c: any) => c.id)).toEqual([17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
   const detail = await (await fetch(`${campaigns}/api/campaigns/1`)).json();
   const dfx = await fixture("campaign-detail.json");
   expect(keys(detail)).toEqual(keys(dfx));

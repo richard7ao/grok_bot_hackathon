@@ -1,6 +1,6 @@
 import { ApiError, type CampaignInput } from "./db";
 
-const IMAGES = ["/img/birkin.svg", "/img/baguette.svg", "/img/flats.svg", "/img/jacket.svg", "/img/shell.svg", "/img/sneaker.svg", "/img/shirt.svg", "/img/photos/birkin.jpg", "/img/photos/arcteryx.jpg", "/img/photos/carhartt.jpg", "/img/photos/xt6.jpg", "/img/photos/stoneisland.jpg", "/img/photos/football.jpg", "/img/photos/baguette.jpg", "/img/photos/flats.jpg"];
+const IMAGES = ["/img/birkin.svg", "/img/baguette.svg", "/img/flats.svg", "/img/jacket.svg", "/img/shell.svg", "/img/sneaker.svg", "/img/shirt.svg", "/img/photos/birkin.jpg", "/img/photos/arcteryx.jpg", "/img/photos/carhartt.jpg", "/img/photos/xt6.jpg", "/img/photos/stoneisland.jpg", "/img/photos/football.jpg", "/img/photos/baguette.jpg", "/img/photos/flats.jpg", "/img/photos/moonswatch.jpg", "/img/photos/england.jpg", "/img/photos/royalpop.jpg", "/img/photos/labubu.jpg", "/img/photos/rolex-sub.jpg", "/img/photos/rolex-datejust.jpg", "/img/photos/bambino.jpg", "/img/photos/tabby.jpg", "/img/photos/puzzle.jpg"];
 const STATUSES = ["live", "preview", "draft", "ended"];
 const SLUG = /^[a-z0-9]+(?:[_-][a-z0-9]+)*$/;
 
