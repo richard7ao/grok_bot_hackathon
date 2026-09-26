@@ -717,9 +717,20 @@ function showResult(body, err) {
   $("#res-retry").hidden = !canRetry;
   $("#res-retry").textContent = `Try again${st.attemptsLeft == null ? "" : ` (${st.attemptsLeft} left)`}`;
   $("#res-map").hidden = canRetry;
+  // Demo only: lets a presenter force a pass on the attempt just shown.
+  st.approveId = a?.verdict === "retry" || a?.verdict === "error" ? a.id : null;
+  $("#res-approve").hidden = st.approveId == null;
   show("s-result");
   staggerIn($("#res-criteria").children, 70, 260);
 }
+$("#res-approve").onclick = async () => {
+  $("#res-approve").hidden = true;
+  try {
+    showResult(await api(`/api/attempts/${st.approveId}/approve`, { method: "POST" }));
+  } catch (e) {
+    showResult(null, e);
+  }
+};
 $("#res-retry").onclick = () => {
   show("s-record");
   startCamera();
@@ -873,6 +884,7 @@ function showExpired() {
   );
   $("#res-retry").hidden = true;
   $("#res-map").hidden = false;
+  $("#res-approve").hidden = true;
   show("s-result");
 }
 

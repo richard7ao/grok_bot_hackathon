@@ -40,7 +40,7 @@ test("static assets are served", async () => {
 test("app.js only calls contract routes", async () => {
   const js = await (await fetch(`${base}/app.js`)).text();
   const calls = [...js.matchAll(/api\(`([^`]+)`/g), ...js.matchAll(/api\("([^"]+)"/g)].map((m) => m[1].replace(/\$\{[^}]+\}/g, ":id"));
-  const allowed = ["/api/drops", "/api/drops/:id/state", "/api/drops/:id/attempts", "/api/reservations/:id/posted", "/api/reservations/:id/buy"];
+  const allowed = ["/api/drops", "/api/drops/:id/state", "/api/drops/:id/attempts", "/api/reservations/:id/posted", "/api/reservations/:id/buy", "/api/attempts/:id/approve"];
   for (const c of calls) expect(allowed).toContain(c);
 });
 
@@ -167,4 +167,14 @@ test("record screen burns the product sticker into the recording and frames", as
 
 test("customer app uses real product photos, not the SVG placeholders", async () => {
   for (const path of ["/", "/app.js"]) expect(await (await fetch(base + path)).text()).not.toMatch(/\/img\/(?!avatar\.svg)[\w-]+\.svg/); // avatar.svg is the map "you" marker, not a product
+});
+
+// Demo-only escape hatch: a presenter can force a pass from the result screen.
+test("result screen has a demo approve button wired to the approve route", async () => {
+  expect(await (await fetch(`${base}/`)).text()).toContain('id="res-approve"');
+  expect(await (await fetch(`${base}/app.js`)).text()).toContain("api(`/api/attempts/${st.approveId}/approve`");
+  const body = await (await fetch(`${base}/api/attempts/1/approve`, { method: "POST" })).json();
+  expect(body.attempt.verdict).toBe("pass");
+  expect(body.reservation.status).toBe("held");
+  expect(Date.parse(body.reservation.expires_at)).toBeGreaterThan(Date.now());
 });

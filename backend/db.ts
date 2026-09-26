@@ -258,6 +258,27 @@ export function saveReview(db: Database, attemptId: number, review: { verdict: s
   logEvent(db, drop_id, "reviewed", { attempt_id: attemptId, verdict: review.verdict });
 }
 
+// Demo only: force the latest retry/error attempt on a drop to a pass.
+export function approveAttempt(db: Database, attemptId: number) {
+  return db.transaction(() => {
+    const a = db.query("select id, n, drop_id, verdict from attempts where id = ?").get(attemptId) as { id: number; n: number; drop_id: number; verdict: string | null } | null;
+    if (!a) throw new ApiError(404, "NOT_FOUND", "No such attempt");
+    const latest = db.query("select max(id) m from attempts where drop_id = ?").get(a.drop_id) as { m: number };
+    if (latest.m !== a.id || (a.verdict !== "retry" && a.verdict !== "error"))
+      throw new ApiError(409, "BAD_STATE", "Only the latest retry or error attempt can be approved");
+    const drop = getDrop(db, a.drop_id)!;
+    const review = {
+      verdict: "pass" as const,
+      criteria: drop.rubric.map((c) => ({ id: c.id, result: "pass" as const, evidence: "Approved manually (demo)" })),
+      feedback: "Approved in demo mode.",
+      suggested_caption: null,
+    };
+    db.query("update attempts set verdict = 'pass', review_json = ? where id = ?").run(JSON.stringify(review), a.id);
+    logEvent(db, a.drop_id, "demo_approved", { attempt_id: a.id, drop_id: a.drop_id });
+    return { drop, attempt: { id: a.id, n: a.n, ...review } };
+  })();
+}
+
 function withSuffix(caption: string | null) {
   const c = (caption ?? DEFAULT_CAPTION).trim();
   return c.endsWith(CAPTION_SUFFIX) ? c : `${c} ${CAPTION_SUFFIX}`;
