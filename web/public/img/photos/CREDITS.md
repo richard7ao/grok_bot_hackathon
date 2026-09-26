@@ -8,3 +8,4 @@
 - football.jpg — Nelson Ndongala — https://unsplash.com/photos/alRAEyW1yFg — Unsplash License
 - baguette.jpg — Maude Frédérique Lavoie — https://unsplash.com/photos/Zha2jqwxzMY — Unsplash License
 - flats.jpg — Noemí Jiménez — https://www.pexels.com/photo/pink-ballet-shoes-16541497/ — Pexels License
+- avatar.svg — DiceBear Notionists — CC0

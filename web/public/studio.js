@@ -1,4 +1,4 @@
-// DropQuest Studio: merchant campaigns, AI challenge draft, reviews.
+// HotDrop Studio: merchant campaigns, AI challenge draft, reviews.
 // All API and user text goes through textContent; never parsed as HTML.
 const PHOTOS = [["Birkin", "birkin"], ["Arc'teryx", "arcteryx"], ["Carhartt", "carhartt"], ["XT-6", "xt6"], ["Stone Island", "stoneisland"], ["Football", "football"], ["Baguette", "baguette"], ["Flats", "flats"]].map(([label, f]) => ({ label, src: `/img/photos/${f}.jpg` }));
 const ILLUSTRATIONS = ["birkin", "baguette", "flats", "jacket", "shell", "sneaker", "shirt"].map((f) => ({ label: `${f} illustration`, src: `/img/${f}.svg` }));

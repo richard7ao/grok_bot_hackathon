@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 
 export const MAX_ATTEMPTS = 3;
 const PURCHASE_MS = Number(process.env.PURCHASE_MS ?? 300_000);
-const CAPTION_SUFFIX = "#ad #FleekDropQuest";
+const CAPTION_SUFFIX = "#ad #HotDrop";
 const RUBRIC_IDS = ["outfit", "styling_idea", "product_detail", "suitable"];
 const DEFAULT_CAPTION = "My styling take on the Fleek drop.";
 

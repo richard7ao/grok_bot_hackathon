@@ -29,12 +29,6 @@ function handle(fn: (req: Req) => Response | Promise<Response>) {
   };
 }
 
-function distanceM(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const rad = (d: number) => (d * Math.PI) / 180;
-  const h = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
-  return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
-}
-
 async function toDataUrl(f: File) {
   return `data:${f.type || "image/jpeg"};base64,${Buffer.from(await f.arrayBuffer()).toString("base64")}`;
 }
@@ -49,12 +43,6 @@ async function postAttempt(req: Req) {
   if (video.size > MAX_VIDEO_BYTES) throw new ApiError(413, "TOO_LARGE", "Video is over 50 MB");
   const durationMs = Number(form.get("duration_ms"));
   if (!(durationMs >= 10_000 && durationMs <= MAX_DURATION_MS)) throw new ApiError(422, "BAD_DURATION", "Record between 10 and 20 seconds");
-  if (form.get("debug") !== "1") {
-    const lat = Number(form.get("lat"));
-    const lng = Number(form.get("lng"));
-    const inside = Number.isFinite(lat) && Number.isFinite(lng) && distanceM(lat, lng, drop.lat, drop.lng) <= drop.radius_m;
-    if (!inside) throw new ApiError(403, "OUTSIDE_ZONE", "Get closer to the drop to enter");
-  }
   const transcript = String(form.get("transcript") ?? "").slice(0, 4000);
   if (!transcript.trim()) throw new ApiError(400, "BAD_REQUEST", "We didn't catch any speech. Record again and talk us through your look.");
   const frames = [0, 1, 2, 3].map((i) => form.get(`frame${i}`)).filter((f): f is File => f instanceof File);

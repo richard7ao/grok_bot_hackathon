@@ -38,7 +38,7 @@ type Stats = { attempts: number; passed: number; held: number; posted: number; s
 type Review = { attempt_id: number; n: number; verdict: "pass" | "retry" | "error" | null;
   feedback: string; transcript: string; created_at: string; video_url: string };
 
-type ErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "DROP_NOT_LIVE" | "OUTSIDE_ZONE" | "BAD_DURATION"
+type ErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "DROP_NOT_LIVE" | "BAD_DURATION"
   | "ATTEMPTS_EXHAUSTED" | "ALREADY_RESERVED" | "HOLD_EXPIRED" | "BAD_STATE" | "TOO_LARGE" | "INTERNAL";
 ```
 
@@ -48,7 +48,7 @@ type ErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "DROP_NOT_LIVE" | "OUTSIDE_ZONE" 
 | --- | --- | --- | --- |
 | GET /api/drops | — | `{ server_time, drops: Drop[] }` (live + preview only; drafts and ended hidden) | — |
 | GET /api/drops/:id/state | — | `{ attempts_used, max_attempts, reservation: Reservation \| null }` | 404 |
-| POST /api/drops/:id/attempts | multipart: `video` (file), `frame0..frame3` (jpeg), `transcript`, `duration_ms`, `lat`, `lng`, `debug` ("1"/"0") | `{ attempt: Attempt, reservation: Reservation \| null, error: null \| "NO_STOCK" \| "ALREADY_RESERVED" }` | 400 BAD_REQUEST, 403 OUTSIDE_ZONE, 409 DROP_NOT_LIVE / ATTEMPTS_EXHAUSTED / ALREADY_RESERVED, 413 TOO_LARGE, 422 BAD_DURATION |
+| POST /api/drops/:id/attempts | multipart: `video` (file), `frame0..frame3` (jpeg), `transcript`, `duration_ms` (no location check: any `lat`/`lng`/`debug` fields are ignored) | `{ attempt: Attempt, reservation: Reservation \| null, error: null \| "NO_STOCK" \| "ALREADY_RESERVED" }` | 400 BAD_REQUEST, 409 DROP_NOT_LIVE / ATTEMPTS_EXHAUSTED / ALREADY_RESERVED, 413 TOO_LARGE, 422 BAD_DURATION |
 | GET /api/reservations/:id | — | `Reservation` | 404 |
 | POST /api/reservations/:id/posted | — | `Reservation` (status posted, expires_at = now + 5 min) | 409 HOLD_EXPIRED / BAD_STATE |
 | POST /api/reservations/:id/buy | — | `Reservation` (status purchased) | 409 HOLD_EXPIRED / BAD_STATE |

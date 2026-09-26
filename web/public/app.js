@@ -1,4 +1,4 @@
-// DropQuest customer app. Vanilla JS; screens are <section class="screen"> toggled by show().
+// HotDrop customer app. Vanilla JS; screens are <section class="screen"> toggled by show().
 const $ = (sel) => document.querySelector(sel);
 const st = { drops: [], drop: null, pos: null, res: null, clip: null, timer: null, attemptsLeft: null, durationMs: 0, pending: null, waitTimer: null };
 const pounds = (pence) => (pence / 100).toLocaleString("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: pence % 100 ? 2 : 0 });
@@ -145,24 +145,17 @@ const img = (src) => Object.assign(document.createElement("img"), { src, alt: ""
 const fmtDist = (m) => (m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`);
 const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-// "at venue (demo)" toggle, remembered per browser.
-const debugBox = $("#debug");
-try { debugBox.checked = localStorage.getItem("dq_debug") === "1"; } catch {}
-debugBox.onchange = () => {
-  try { localStorage.setItem("dq_debug", debugBox.checked ? "1" : "0"); } catch {}
-  if (st.drop) renderDrop();
-};
-
 // Map: MapLibre GL with the keyless OpenFreeMap Positron style.
 const COBALT = "#1B5CFF";
 const map = new maplibregl.Map({ container: "map", style: "https://tiles.openfreemap.org/styles/positron", center: [-0.1, 51.515], zoom: 12, attributionControl: { compact: true } });
-let youDot = null;
-
-// Drop zone as a 64-point polygon (flat-earth approximation, fine at 150 m).
-function zoneRing(d, steps = 64) {
-  const dLat = d.radius_m / 111320, dLng = dLat / Math.cos((d.lat * Math.PI) / 180);
-  return Array.from({ length: steps + 1 }, (_, i) => [d.lng + dLng * Math.cos((i / steps) * 2 * Math.PI), d.lat + dLat * Math.sin((i / steps) * 2 * Math.PI)]);
-}
+// "You" avatar: at your real position once located, otherwise approximately central London.
+const APPROX_POS = { lat: 51.5145, lng: -0.127 };
+const youLabel = el("span", "", "You (approx.)");
+const youEl = el("div", "you");
+const youAva = el("div", "ava");
+youAva.append(Object.assign(img("/img/avatar.svg"), { alt: "You" }));
+youEl.append(youAva, youLabel);
+const youMarker = new maplibregl.Marker({ element: youEl, anchor: "bottom" }).setLngLat([APPROX_POS.lng, APPROX_POS.lat]).addTo(map);
 
 function pinEl(drop) {
   const b = el("button", `pin ${drop.status}`);
@@ -174,17 +167,7 @@ function pinEl(drop) {
 
 function drawDrops() {
   st.drops.forEach((d) => new maplibregl.Marker({ element: pinEl(d), anchor: "bottom" }).setLngLat([d.lng, d.lat]).addTo(map));
-  const features = st.drops.filter((d) => d.status === "live").map((d) => ({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [zoneRing(d)] } }));
-  const addZones = () => {
-    map.addSource("zones", { type: "geojson", data: { type: "FeatureCollection", features } });
-    map.addLayer({ id: "zones", type: "fill", source: "zones", paint: { "fill-color": COBALT, "fill-opacity": 0.12 } });
-    map.addLayer({ id: "zones-edge", type: "line", source: "zones", paint: { "line-color": COBALT, "line-width": 1.5, "line-dasharray": [2, 2] } });
-  };
-  if (map.isStyleLoaded()) addZones();
-  else map.once("load", addZones);
-  const bounds = new maplibregl.LngLatBounds();
-  st.drops.forEach((d) => bounds.extend([d.lng, d.lat]));
-  if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: { top: 60, bottom: 260, left: 40, right: 40 }, maxZoom: 15, duration: 0 });
+  fitMap();
   renderNear();
   renderTicker();
 }
@@ -207,12 +190,20 @@ function renderNear() {
       const b = el("button", `drop-card ${d.status}`);
       const tile = el("span", "tile");
       tile.append(img(d.image_url));
-      const meta = d.status === "live" ? (st.pos ? fmtDist(dist(d)) : "Live now") : "Soon";
+      const meta = d.status === "live" ? (st.pos ? `${fmtDist(dist(d))} away` : "Live now") : "Soon";
       b.append(tile, el("b", "", pounds(d.price_pence)), el("span", "brand", d.brand ?? ""), el("small", d.status, meta));
       b.onclick = () => openDrop(d.id);
       return b;
     }),
   );
+}
+
+// Fit the map to every drop plus the "you" avatar.
+function fitMap() {
+  const bounds = new maplibregl.LngLatBounds();
+  st.drops.forEach((d) => bounds.extend([d.lng, d.lat]));
+  bounds.extend(youMarker.getLngLat());
+  map.fitBounds(bounds, { padding: { top: 80, bottom: 260, left: 40, right: 40 }, maxZoom: 15, duration: 0 });
 }
 
 async function refreshDrops() {
@@ -249,13 +240,15 @@ async function boot() {
 navigator.geolocation?.watchPosition(
   (p) => {
     st.pos = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy };
-    youDot ??= new maplibregl.Marker({ element: el("div", "you") }).setLngLat([st.pos.lng, st.pos.lat]).addTo(map);
-    youDot.setLngLat([st.pos.lng, st.pos.lat]);
+    const first = youLabel.textContent !== "You";
+    youMarker.setLngLat([st.pos.lng, st.pos.lat]);
+    youLabel.textContent = "You";
+    if (first && st.drops.length) fitMap();
     $("#loc-status").textContent = `Located (±${Math.round(st.pos.acc)} m). Tap a drop to see it.`;
     renderNear();
     if (st.drop && !$("#s-drop").hidden) renderDrop();
   },
-  () => ($("#loc-status").textContent = "Location is off. Tick “at venue (demo)” to try a drop."),
+  () => ($("#loc-status").textContent = "Location is off. You can still enter any live drop."),
   { enableHighAccuracy: true, maximumAge: 60000 },
 );
 
@@ -286,17 +279,14 @@ function lockReason() {
   if (d.status !== "live") return "Coming soon";
   if (d.available <= 0) return "Allocation full";
   if (st.attemptsLeft === 0) return "No attempts left";
-  if (debugBox.checked) return null;
-  if (!st.pos) return "Turn on location, or tick “at venue (demo)”";
-  const m = distanceM(st.pos, d);
-  return m > d.radius_m ? `Walk ${Math.round(m - d.radius_m)} m closer to unlock` : null;
+  return null;
 }
 
 function renderDrop() {
   const d = st.drop;
   $("#d-img").src = d.image_url;
   $("#s-drop").classList.toggle("live", d.status === "live");
-  $("#d-brand").textContent = `${d.brand ?? "Fleek"} · ${d.status === "live" ? "Live drop" : `Launches ${fmtDate(d.public_launch_at)}`}`;
+  $("#d-brand").textContent = [d.brand ?? "Fleek", d.status === "live" ? "Live drop" : `Launches ${fmtDate(d.public_launch_at)}`, st.pos && `${fmtDist(distanceM(st.pos, d))} away`].filter(Boolean).join(" · ");
   $("#d-title").textContent = d.title;
   $("#d-desc").textContent = d.description ?? "";
   $("#d-price").textContent = pounds(d.price_pence);
@@ -642,11 +632,6 @@ $("#p-submit").onclick = async () => {
   c.frames.forEach((b, i) => f.set(`frame${i}`, b, `frame${i}.jpg`));
   f.set("transcript", c.transcript);
   f.set("duration_ms", String(c.durationMs));
-  f.set("debug", debugBox.checked ? "1" : "0");
-  if (st.pos) {
-    f.set("lat", String(st.pos.lat));
-    f.set("lng", String(st.pos.lng));
-  }
   show("s-review");
   $("#rv-stage").textContent = "Uploading your clip…";
   const stage = setTimeout(() => ($("#rv-stage").textContent = "Sending it to Grok…"), 1200);
@@ -741,7 +726,7 @@ $("#res-retry").onclick = () => {
 };
 
 // Share, post, buy
-const SUFFIX = "#ad #FleekDropQuest";
+const SUFFIX = "#ad #HotDrop";
 const withSuffix = (c) => (c.includes(SUFFIX) ? c.trim() : `${c.trim()} ${SUFFIX}`.trim());
 
 function resume(reservation) {
@@ -755,7 +740,7 @@ function openShare() {
   const r = st.res;
   const src = st.clip?.url ?? r.video_url;
   $("#sh-download").href = src;
-  $("#sh-download").download = `dropquest-clip.${st.clip?.ext ?? r.video_url.split(".").pop()}`;
+  $("#sh-download").download = `hotdrop-clip.${st.clip?.ext ?? r.video_url.split(".").pop()}`;
   $("#sh-reel").src = src;
   $("#sh-caption").value = r.caption;
   syncCaption();
@@ -832,7 +817,7 @@ function openDone() {
   clearInterval(st.timer);
   $("#dn-img").src = st.drop.image_url;
   $("#dn-title").textContent = st.drop.title;
-  $("#dn-order").textContent = `DQ-${String(st.res.id).padStart(5, "0")}`;
+  $("#dn-order").textContent = `HD-${String(st.res.id).padStart(5, "0")}`;
   drawPickupCode(st.res.id);
   show("s-done");
 }
@@ -851,9 +836,9 @@ function drawPickupCode(seed) {
 }
 
 $("#dn-share").onclick = async () => {
-  const text = `Got early access to the ${st.drop.title} on Fleek DropQuest. ${SUFFIX}`;
+  const text = `Got early access to the ${st.drop.title} on HotDrop. ${SUFFIX}`;
   try {
-    if (navigator.share) await navigator.share({ title: "My DropQuest collectible", text });
+    if (navigator.share) await navigator.share({ title: "My HotDrop collectible", text });
     else {
       await navigator.clipboard.writeText(text);
       toast("Copied to share");
