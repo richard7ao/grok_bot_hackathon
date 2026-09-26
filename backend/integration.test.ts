@@ -347,3 +347,13 @@ test("demo approve is 404 when DEMO_MODE=0", async () => {
   expect(res.status).toBe(404);
   expect((await res.json()).error).toBe("NOT_FOUND");
 });
+
+test("demo skip: empty transcript with demo_pass=1 is a pass and holds stock", async () => {
+  const res = await post(api, "/api/drops/1/attempts", entry("", { demo_pass: "1" }));
+  expect(res.status).toBe(200);
+  const body = await res.json();
+  expect(body.attempt.verdict).toBe("pass");
+  expect(body.reservation.status).toBe("held");
+  const noSkip = await post(api, "/api/drops/2/attempts", entry(""));
+  expect(noSkip.status).toBe(400);
+});

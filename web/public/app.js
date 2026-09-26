@@ -679,13 +679,15 @@ $("#p-retake").onclick = () => {
 };
 
 // Review
-$("#p-submit").onclick = async () => {
+// demoPass: presenter-only skip; the server records a pass without running the review.
+async function submitClip(demoPass = false) {
   const c = st.clip;
   const f = new FormData();
   f.set("video", c.blob, `clip.${c.ext}`);
   c.frames.forEach((b, i) => f.set(`frame${i}`, b, `frame${i}.jpg`));
   f.set("transcript", c.transcript);
   f.set("duration_ms", String(c.durationMs));
+  if (demoPass) f.set("demo_pass", "1");
   show("s-review");
   $("#rv-stage").textContent = "Uploading your clip…";
   const stage = setTimeout(() => ($("#rv-stage").textContent = "Sending it to the stylist…"), 1200);
@@ -697,10 +699,12 @@ $("#p-submit").onclick = async () => {
   } finally {
     clearTimeout(stage);
   }
-  if (body.attempt.verdict === "error") return showResult(body); // nothing to wait for
+  if (body.attempt.verdict === "error" || demoPass) return showResult(body); // nothing to wait for
   st.attemptsLeft = Math.max(0, (st.attemptsLeft ?? 3) - 1);
   enterWait({ body, reveal_at: Date.now() + REVIEW_WAIT_MS, drop_id: st.drop.id, attempts_left: st.attemptsLeft });
-};
+}
+$("#p-submit").onclick = () => submitClip(false);
+$("#p-skip").onclick = () => submitClip(true);
 
 // Review wait. The verdict is already in `body`; only its reveal is delayed (see the comment on #s-wait).
 const REVIEW_WAIT_MS = 45000;
@@ -773,12 +777,15 @@ function showResult(body, err) {
   $("#res-map").hidden = canRetry;
   // Demo only: lets a presenter force a pass on the attempt just shown.
   st.approveId = a?.verdict === "retry" || a?.verdict === "error" ? a.id : null;
-  $("#res-approve").hidden = st.approveId == null;
+  // No attempt was created (e.g. no speech caught): the demo button re-submits the same clip as a pass.
+  st.skipResubmit = st.approveId == null && Boolean(err) && Boolean(st.clip) && !NO_RETRY.includes(err.code);
+  $("#res-approve").hidden = st.approveId == null && !st.skipResubmit;
   show("s-result");
   staggerIn($("#res-criteria").children, 70, 260);
 }
 $("#res-approve").onclick = async () => {
   $("#res-approve").hidden = true;
+  if (st.skipResubmit) return submitClip(true);
   try {
     showResult(await api(`/api/attempts/${st.approveId}/approve`, { method: "POST" }));
   } catch (e) {

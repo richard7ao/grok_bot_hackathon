@@ -44,7 +44,9 @@ async function postAttempt(req: Req) {
   const durationMs = Number(form.get("duration_ms"));
   if (!(durationMs >= 10_000 && durationMs <= MAX_DURATION_MS)) throw new ApiError(422, "BAD_DURATION", "Record between 10 and 20 seconds");
   const transcript = String(form.get("transcript") ?? "").slice(0, 4000);
-  if (!transcript.trim()) throw new ApiError(400, "BAD_REQUEST", "We didn't catch any speech. Record again and talk us through your look.");
+  // Demo only: a presenter can skip the review; disabled when DEMO_MODE=0.
+  const demoPass = form.get("demo_pass") === "1" && process.env.DEMO_MODE !== "0";
+  if (!demoPass && !transcript.trim()) throw new ApiError(400, "BAD_REQUEST", "We didn't catch any speech. Record again and talk us through your look.");
   const frames = [0, 1, 2, 3].map((i) => form.get(`frame${i}`)).filter((f): f is File => f instanceof File);
   const videoPath = `${crypto.randomUUID()}.${video.type.includes("mp4") ? "mp4" : "webm"}`;
 
@@ -52,7 +54,9 @@ async function postAttempt(req: Req) {
   let review: Review;
   try {
     await Bun.write(join(UPLOADS, videoPath), video);
-    review = await reviewAttempt({ drop, transcript, frames: await Promise.all(frames.map(toDataUrl)) });
+    review = demoPass
+      ? { verdict: "pass", criteria: drop.rubric.map((c) => ({ id: c.id, result: "pass" as const, evidence: "Approved manually (demo)" })), feedback: "Approved in demo mode.", suggested_caption: null }
+      : await reviewAttempt({ drop, transcript, frames: await Promise.all(frames.map(toDataUrl)) });
   } catch (e) {
     // Settle the attempt anyway: a verdict-less attempt would count as in-flight forever.
     console.error(e);
