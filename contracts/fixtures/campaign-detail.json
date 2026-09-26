@@ -1,14 +1,16 @@
 {
   "campaign": {
     "id": 1,
+    "brand": "Fleek Luxe",
     "title": "Pre-loved Hermès Birkin 25 — Gold Togo",
+    "description": "Three authenticated pre-loved Hermès Birkin 25s in Gold Togo, sourced from verified Fleek sellers.",
     "status": "live",
     "price_pence": 1850000,
     "image_url": "/img/birkin.svg",
-    "lat": 51.5237,
-    "lng": -0.0785,
+    "lat": 51.5243,
+    "lng": -0.0746,
     "radius_m": 150,
-    "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Birkin. Include one detail about the bag from the drop card.",
+    "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Birkin. Include one detail about it from the drop card.",
     "facts": [
       "Gold Togo leather",
       "Gold-plated hardware",
@@ -23,7 +25,7 @@
       },
       {
         "id": "styling_idea",
-        "label": "Say how you would style the bag"
+        "label": "Say how you would style the Birkin"
       },
       {
         "id": "product_detail",
@@ -36,10 +38,8 @@
     ],
     "allocation_total": 3,
     "available": 3,
-    "brand": "Fleek Luxe",
-    "description": "Three authenticated pre-loved Hermès Birkin 25s in Gold Togo, sourced from verified Fleek sellers. Early access for creators who style it best.",
-    "public_launch_at": "2026-10-03T10:00:00.000Z",
-    "hold_minutes": 10
+    "hold_minutes": 10,
+    "public_launch_at": "2026-10-03T10:00:00.000Z"
   },
   "stats": {
     "attempts": 2,

@@ -61,6 +61,6 @@ type ErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "DROP_NOT_LIVE" | "OUTSIDE_ZONE" 
 | POST /api/campaigns/draft | JSON `{ brand, title, description, facts? }` | `{ prompt, facts: string[], rubric: {id,label}[] }` written by the LLM | 400; 502 INTERNAL if the model fails |
 | GET /uploads/:file | — | video bytes | 404 |
 
-Image options for `image_url`: `/img/birkin.svg`, `/img/baguette.svg`, `/img/flats.svg`, `/img/jacket.svg`. Hold length per drop is `hold_minutes` (env `HOLD_MS` overrides it for tests).
+Image options for `image_url`: `/img/birkin.svg`, `/img/baguette.svg`, `/img/flats.svg`, `/img/jacket.svg`, `/img/shell.svg`, `/img/sneaker.svg`, `/img/shirt.svg`. Hold length per drop is `hold_minutes` (env `HOLD_MS` overrides it for tests).
 
-Rules: max 3 counted attempts per drop (`error` verdicts do not count); duration 10000–20000 ms; video ≤ 50 MB; hold 10 min; purchase window 5 min; one active reservation per drop (single demo user).
+Rules: max 3 counted attempts per drop (`error` verdicts do not count); duration 10000–20000 ms; video ≤ 50 MB; hold 10 min; purchase window 5 min; one active reservation per drop (single demo user). Several drops can be live at once, each at its own location; `VENUE_LAT`/`VENUE_LNG` move drop 1 only.

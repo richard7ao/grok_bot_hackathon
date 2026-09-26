@@ -2,14 +2,16 @@
   "campaigns": [
     {
       "id": 1,
+      "brand": "Fleek Luxe",
       "title": "Pre-loved Hermès Birkin 25 — Gold Togo",
+      "description": "Three authenticated pre-loved Hermès Birkin 25s in Gold Togo, sourced from verified Fleek sellers.",
       "status": "live",
       "price_pence": 1850000,
       "image_url": "/img/birkin.svg",
-      "lat": 51.5237,
-      "lng": -0.0785,
+      "lat": 51.5243,
+      "lng": -0.0746,
       "radius_m": 150,
-      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Birkin. Include one detail about the bag from the drop card.",
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the Birkin. Include one detail about it from the drop card.",
       "facts": [
         "Gold Togo leather",
         "Gold-plated hardware",
@@ -24,7 +26,7 @@
         },
         {
           "id": "styling_idea",
-          "label": "Say how you would style the bag"
+          "label": "Say how you would style the Birkin"
         },
         {
           "id": "product_detail",
@@ -37,10 +39,8 @@
       ],
       "allocation_total": 3,
       "available": 3,
-      "brand": "Fleek Luxe",
-      "description": "Three authenticated pre-loved Hermès Birkin 25s in Gold Togo, sourced from verified Fleek sellers. Early access for creators who style it best.",
-      "public_launch_at": "2026-10-03T10:00:00.000Z",
       "hold_minutes": 10,
+      "public_launch_at": "2026-10-03T10:00:00.000Z",
       "stats": {
         "attempts": 2,
         "passed": 1,
@@ -51,22 +51,45 @@
     },
     {
       "id": 2,
-      "title": "Vintage Fendi Baguette — 1999 Monogram",
-      "status": "preview",
-      "price_pence": 145000,
-      "image_url": "/img/baguette.svg",
-      "lat": 51.5262,
-      "lng": -0.0752,
+      "brand": "Fleek Outdoors",
+      "title": "Vintage Arc'teryx Alpha SV — Made in Canada",
+      "description": "Early-2010s Arc'teryx Alpha SV shells in Gore-Tex Pro, checked and seam-taped.",
+      "status": "live",
+      "price_pence": 42000,
+      "image_url": "/img/shell.svg",
+      "lat": 51.5129,
+      "lng": -0.1389,
       "radius_m": 150,
-      "prompt": "Coming soon",
-      "facts": [],
-      "rubric": [],
-      "allocation_total": 0,
-      "available": 0,
-      "brand": "Fleek Archive",
-      "description": "A 1999 Fendi Baguette in the original monogram canvas.",
-      "public_launch_at": "2026-10-10T10:00:00.000Z",
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the shell. Include one detail about it from the drop card.",
+      "facts": [
+        "Gore-Tex Pro shell",
+        "Made in Canada",
+        "Helmet-compatible StormHood",
+        "Black, size M",
+        "Seams re-taped and checked"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the shell"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 5,
+      "available": 5,
       "hold_minutes": 10,
+      "public_launch_at": "2026-10-05T10:00:00.000Z",
       "stats": {
         "attempts": 0,
         "passed": 0,
@@ -77,22 +100,45 @@
     },
     {
       "id": 3,
-      "title": "Miu Miu Satin Ballet Flats — Blush",
-      "status": "preview",
-      "price_pence": 79000,
-      "image_url": "/img/flats.svg",
+      "brand": "Fleek Workwear",
+      "title": "Vintage Carhartt Detroit Jacket — Faded Brown Duck",
+      "description": "Blanket-lined Detroit jackets from the 90s, faded and broken in.",
+      "status": "live",
+      "price_pence": 18000,
+      "image_url": "/img/jacket.svg",
       "lat": 51.5215,
-      "lng": -0.0821,
+      "lng": -0.0717,
       "radius_m": 150,
-      "prompt": "Coming soon",
-      "facts": [],
-      "rubric": [],
-      "allocation_total": 0,
-      "available": 0,
-      "brand": "Fleek Archive",
-      "description": "Blush satin Miu Miu ballet flats, barely worn.",
-      "public_launch_at": "2026-10-17T10:00:00.000Z",
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the jacket. Include one detail about it from the drop card.",
+      "facts": [
+        "Faded brown duck canvas",
+        "Blanket-lined body",
+        "Corduroy collar",
+        "Union-made tag, pre-2000",
+        "Size L"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the jacket"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 8,
+      "available": 8,
       "hold_minutes": 10,
+      "public_launch_at": "2026-10-04T10:00:00.000Z",
       "stats": {
         "attempts": 0,
         "passed": 0,
@@ -103,6 +149,159 @@
     },
     {
       "id": 4,
+      "brand": "Fleek Sneakers",
+      "title": "Salomon XT-6 — Black/Phantom, Deadstock",
+      "description": "Deadstock Salomon XT-6 trail runners, the gorpcore staple that keeps selling out.",
+      "status": "live",
+      "price_pence": 19000,
+      "image_url": "/img/sneaker.svg",
+      "lat": 51.5117,
+      "lng": -0.124,
+      "radius_m": 150,
+      "prompt": "Show your current outfit in a 15-second video, then tell us how you would style the XT-6s. Include one detail about it from the drop card.",
+      "facts": [
+        "Deadstock, never worn",
+        "Quicklace system",
+        "Black/Phantom colourway",
+        "UK 9",
+        "Original box"
+      ],
+      "rubric": [
+        {
+          "id": "outfit",
+          "label": "Show or describe your current outfit"
+        },
+        {
+          "id": "styling_idea",
+          "label": "Say how you would style the XT-6s"
+        },
+        {
+          "id": "product_detail",
+          "label": "Mention one detail from the drop card"
+        },
+        {
+          "id": "suitable",
+          "label": "Keep it relevant and suitable"
+        }
+      ],
+      "allocation_total": 6,
+      "available": 6,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-06T10:00:00.000Z",
+      "stats": {
+        "attempts": 0,
+        "passed": 0,
+        "held": 0,
+        "posted": 0,
+        "sold": 0
+      }
+    },
+    {
+      "id": 5,
+      "brand": "Fleek Archive",
+      "title": "Stone Island Crinkle Reps Jacket — 2003",
+      "description": "Archive Stone Island Crinkle Reps with the badge intact.",
+      "status": "preview",
+      "price_pence": 52000,
+      "image_url": "/img/shell.svg",
+      "lat": 51.47,
+      "lng": -0.069,
+      "radius_m": 150,
+      "prompt": "Coming soon",
+      "facts": [],
+      "rubric": [],
+      "allocation_total": 0,
+      "available": 0,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-12T10:00:00.000Z",
+      "stats": {
+        "attempts": 0,
+        "passed": 0,
+        "held": 0,
+        "posted": 0,
+        "sold": 0
+      }
+    },
+    {
+      "id": 6,
+      "brand": "Fleek Football",
+      "title": "Arsenal 1990s Home Shirt — JVC",
+      "description": "A 90s Arsenal home shirt with the JVC sponsor.",
+      "status": "preview",
+      "price_pence": 14000,
+      "image_url": "/img/shirt.svg",
+      "lat": 51.5415,
+      "lng": -0.1463,
+      "radius_m": 150,
+      "prompt": "Coming soon",
+      "facts": [],
+      "rubric": [],
+      "allocation_total": 0,
+      "available": 0,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-11T10:00:00.000Z",
+      "stats": {
+        "attempts": 0,
+        "passed": 0,
+        "held": 0,
+        "posted": 0,
+        "sold": 0
+      }
+    },
+    {
+      "id": 7,
+      "brand": "Fleek Archive",
+      "title": "Vintage Fendi Baguette — 1999 Monogram",
+      "description": "A 1999 Fendi Baguette in the original monogram canvas.",
+      "status": "preview",
+      "price_pence": 145000,
+      "image_url": "/img/baguette.svg",
+      "lat": 51.5155,
+      "lng": -0.2051,
+      "radius_m": 150,
+      "prompt": "Coming soon",
+      "facts": [],
+      "rubric": [],
+      "allocation_total": 0,
+      "available": 0,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-10T10:00:00.000Z",
+      "stats": {
+        "attempts": 0,
+        "passed": 0,
+        "held": 0,
+        "posted": 0,
+        "sold": 0
+      }
+    },
+    {
+      "id": 8,
+      "brand": "Fleek Archive",
+      "title": "Miu Miu Satin Ballet Flats — Blush",
+      "description": "Blush satin Miu Miu ballet flats, barely worn.",
+      "status": "preview",
+      "price_pence": 79000,
+      "image_url": "/img/flats.svg",
+      "lat": 51.5202,
+      "lng": -0.1515,
+      "radius_m": 150,
+      "prompt": "Coming soon",
+      "facts": [],
+      "rubric": [],
+      "allocation_total": 0,
+      "available": 0,
+      "hold_minutes": 10,
+      "public_launch_at": "2026-10-17T10:00:00.000Z",
+      "stats": {
+        "attempts": 0,
+        "passed": 0,
+        "held": 0,
+        "posted": 0,
+        "sold": 0
+      }
+    },
+    {
+      "id": 9,
       "title": "Chanel Classic Flap — Black Caviar",
       "status": "draft",
       "price_pence": 920000,
