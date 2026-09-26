@@ -6,9 +6,20 @@ const pounds = (pence) => (pence / 100).toLocaleString("en-GB", { style: "curren
 // Quest step per screen, drawn as the stories-style bars under the header.
 const STEP = { "s-map": 0, "s-drop": 1, "s-record": 2, "s-preview": 2, "s-review": 3, "s-wait": 3, "s-result": 3, "s-share": 4, "s-buy": 5, "s-done": 6 };
 
+// Back navigation (button and browser/OS back) goes to a fixed parent screen. Review/wait have none.
+const PARENT = { "s-drop": "s-map", "s-record": "s-drop", "s-preview": "s-record", "s-result": "s-drop", "s-share": "s-drop", "s-buy": "s-share", "s-done": "s-map" };
+const CAM_SCREENS = ["s-record", "s-preview"];
+let current = null;
+
 function show(id) {
+  const from = current;
+  current = id;
+  if (from !== id) history.pushState({ id }, "");
+  if (CAM_SCREENS.includes(from) && !CAM_SCREENS.includes(id)) releaseCamera();
   document.querySelectorAll(".screen").forEach((s) => (s.hidden = s.id !== id));
   document.querySelectorAll("#stories i").forEach((bar, i) => (bar.className = i < STEP[id] ? "on" : i === STEP[id] ? "half" : ""));
+  $("#app").classList.toggle("cam", CAM_SCREENS.includes(id));
+  if (id !== "s-preview") $("#p-video").pause();
   if (id === "s-map") setTimeout(() => map.resize(), 0);
 }
 
@@ -20,9 +31,21 @@ function toast(msg) {
   toast.t = setTimeout(() => (t.hidden = true), 4000);
 }
 
+function goBack() {
+  let to = PARENT[current];
+  if (current === "s-result" && $("#s-result").classList.contains("expired")) to = "s-map";
+  if (!to) return current !== "s-map" && history.pushState({ id: current }, ""); // review in flight: stay put
+  if (to === "s-share") return openShare();
+  if (to === "s-drop") renderDrop();
+  show(to);
+  if (to === "s-record") startCamera();
+}
+window.addEventListener("popstate", goBack);
+
 document.addEventListener("click", (e) => {
   const go = e.target.closest("[data-go]");
   if (go) show(go.dataset.go);
+  if (e.target.closest("[data-back]")) goBack();
 });
 
 async function api(path, opts) {
@@ -191,6 +214,9 @@ function renderDrop() {
   $("#d-prompt").textContent = d.prompt;
   $("#d-facts").replaceChildren(...d.facts.map((f) => li(f)));
   $("#d-rubric").replaceChildren(...d.rubric.map((c) => li(c.label)));
+  const r = st.res, held = r?.drop_id === d.id && ["held", "posted"].includes(r.status) && Date.parse(r.expires_at) > Date.now();
+  $("#d-hold").hidden = !held;
+  $("#d-start").hidden = held;
   const why = lockReason();
   $("#d-start").disabled = Boolean(why);
   $("#d-why").textContent = why ?? (st.attemptsLeft == null ? "" : `${st.attemptsLeft} attempts left`);
@@ -200,6 +226,24 @@ function renderDrop() {
 const MIN_MS = 10000, MAX_MS = 20000, FRAME_EVERY_MS = 3000;
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 let stream, recorder, chunks, frames, transcript, speech, startedAt, tick, frameTimer;
+const cam = { facing: "user", countdown: true, countTimer: null, aborted: false };
+const fmtClock = (ms) => {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+// Rubric hint chips: a UX nudge from the live transcript, not validation (Grok decides).
+const HINTS = {
+  outfit: /\b(wearing|outfit|top|shirt|tee|jeans|trousers|hoodie|jacket|coat|trench|dress|skirt|trainers|sneakers|boots)\b/,
+  styling: /\b(style|styled|styling|wear|pair|paired|pairing|carry|carrying|with)\b/,
+};
+function lightChips(text) {
+  const said = text.toLowerCase();
+  const words = new Set(said.match(/\p{L}+/gu) ?? []);
+  const factWords = (st.drop?.facts ?? []).join(" ").toLowerCase().match(/\p{L}{5,}/gu) ?? [];
+  const on = { outfit: HINTS.outfit.test(said), styling: HINTS.styling.test(said), detail: factWords.some((w) => words.has(w)) };
+  document.querySelectorAll("[data-chip]").forEach((c) => c.classList.toggle("on", on[c.dataset.chip]));
+}
 
 $("#d-start").onclick = () => {
   $("#r-prompt").textContent = st.drop.prompt;
@@ -207,30 +251,64 @@ $("#d-start").onclick = () => {
   startCamera();
 };
 
-async function startCamera() {
+function resetRecordUI() {
+  $("#s-record").classList.remove("recording");
   $("#r-go").hidden = false;
+  $("#r-go").disabled = true;
   $("#r-stop").hidden = true;
-  $("#r-clock").textContent = "0s";
+  $("#r-min").hidden = true;
+  $("#r-count").hidden = true;
+  $("#r-clock").textContent = "0:00";
+  $("#r-fill1").style.width = $("#r-fill2").style.width = "0%";
+  $("#r-captions").textContent = "";
+  lightChips("");
+}
+
+async function startCamera() {
+  resetRecordUI();
   try {
-    stream ??= await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 720, height: 1280 }, audio: true });
+    stream ??= await navigator.mediaDevices.getUserMedia({ video: { facingMode: cam.facing, width: 720, height: 1280 }, audio: true });
   } catch {
-    $("#r-go").disabled = true;
-    $("#r-note").textContent = "Camera or microphone is blocked. Allow both from the address bar, then reload.";
+    $("#r-blocked").hidden = false;
     return;
   }
+  $("#r-blocked").hidden = true;
   $("#r-live").srcObject = stream;
+  $("#s-record").classList.toggle("selfie", cam.facing === "user");
   $("#r-go").disabled = false;
   $("#r-note").textContent = SpeechRec ? "Speak clearly: Grok reads what you say." : "Speech capture needs Chrome. Grok will only see frames.";
+}
+
+function stopCamera() {
+  stream?.getTracks().forEach((t) => t.stop());
+  stream = null;
 }
 
 function pickMime() {
   return ["video/mp4;codecs=avc1,mp4a.40.2", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm"].find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
 }
 
+// Shutter: optional 3-2-1 countdown, then record.
 $("#r-go").onclick = () => {
+  $("#r-go").disabled = true;
+  if (!cam.countdown) return beginRecording();
+  let n = 3;
+  const draw = () => $("#r-count").replaceChildren(el("span", "", String(n))); // fresh node restarts the pop animation
+  $("#r-count").hidden = false;
+  draw();
+  cam.countTimer = setInterval(() => {
+    if (--n > 0) return draw();
+    clearInterval(cam.countTimer);
+    $("#r-count").hidden = true;
+    beginRecording();
+  }, 1000);
+};
+
+function beginRecording() {
   chunks = [];
   frames = [];
   transcript = "";
+  cam.aborted = false;
   recorder = new MediaRecorder(stream, { mimeType: pickMime() });
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   recorder.onstop = finishRecording;
@@ -238,8 +316,16 @@ $("#r-go").onclick = () => {
     speech = new SpeechRec();
     speech.lang = "en-GB";
     speech.continuous = true;
+    speech.interimResults = true; // interim results only feed captions and hint chips
     speech.onresult = (e) => {
-      for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) transcript += `${e.results[i][0].transcript} `;
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) transcript += `${e.results[i][0].transcript} `;
+        else interim += e.results[i][0].transcript;
+      }
+      const live = transcript + interim;
+      $("#r-captions").textContent = live.length > 90 ? live.slice(-90).replace(/^\S*\s/, "") : live;
+      lightChips(live);
     };
     speech.onend = () => recorder?.state === "recording" && speech.start(); // Chrome stops after silence
     speech.start();
@@ -249,14 +335,19 @@ $("#r-go").onclick = () => {
   frameTimer = setInterval(() => frames.length < 4 && grabFrame(), FRAME_EVERY_MS);
   tick = setInterval(() => {
     const ms = performance.now() - startedAt;
-    $("#r-clock").textContent = `${Math.floor(ms / 1000)}s`;
+    $("#r-clock").textContent = fmtClock(ms);
+    $("#r-fill1").style.width = `${Math.min(1, ms / MIN_MS) * 100}%`;
+    $("#r-fill2").style.width = `${Math.min(1, Math.max(0, (ms - MIN_MS) / (MAX_MS - MIN_MS))) * 100}%`;
     $("#r-stop").disabled = ms < MIN_MS;
+    $("#r-min").hidden = ms >= MIN_MS;
     if (ms >= MAX_MS) stopRecording();
   }, 200);
+  $("#s-record").classList.add("recording");
   $("#r-go").hidden = true;
   $("#r-stop").hidden = false;
   $("#r-stop").disabled = true;
-};
+  $("#r-min").hidden = false;
+}
 $("#r-stop").onclick = () => stopRecording();
 
 function stopRecording() {
@@ -267,6 +358,33 @@ function stopRecording() {
   recorder.stop();
   speech?.stop();
 }
+
+// Leaving the camera screens: abandon any take (no preview) and turn the camera off.
+function releaseCamera() {
+  clearInterval(cam.countTimer);
+  if (recorder?.state === "recording") {
+    cam.aborted = true;
+    stopRecording();
+  }
+  stopCamera();
+}
+$("#r-retry").onclick = () => startCamera();
+
+// Tool rail
+const press = (btn, on) => btn.setAttribute("aria-pressed", String(on));
+$("#r-flip").onclick = () => {
+  if (recorder?.state === "recording") return;
+  cam.facing = cam.facing === "user" ? "environment" : "user";
+  stopCamera();
+  startCamera();
+};
+$("#r-timer").onclick = () => {
+  cam.countdown = !cam.countdown;
+  press($("#r-timer"), cam.countdown);
+  $("#r-timer-label").textContent = cam.countdown ? "3s" : "Off";
+};
+$("#r-hints").onclick = () => press($("#r-hints"), !($("#r-card").hidden = !$("#r-card").hidden));
+$("#r-guide").onclick = () => press($("#r-guide"), !($("#r-guides").hidden = !$("#r-guides").hidden));
 
 function grabFrame() {
   const v = $("#r-live");
@@ -279,12 +397,18 @@ function grabFrame() {
 
 async function finishRecording() {
   await new Promise((r) => setTimeout(r, 800)); // let the last speech result arrive
+  if (cam.aborted) return;
   const type = recorder.mimeType || "video/webm";
   const blob = new Blob(chunks, { type });
   st.clip = { blob, url: URL.createObjectURL(blob), ext: type.includes("mp4") ? "mp4" : "webm", frames: [...frames], transcript: transcript.trim(), durationMs: st.durationMs };
   $("#p-video").src = st.clip.url;
+  $("#p-dur").textContent = fmtClock(st.durationMs);
   $("#p-transcript").textContent = st.clip.transcript || "(nothing heard, so speak up and retake)";
   show("s-preview");
+  $("#p-video").play().catch(() => {
+    $("#p-video").muted = true;
+    $("#p-video").play().catch(() => {});
+  });
 }
 $("#p-retake").onclick = () => {
   show("s-record");
@@ -444,7 +568,10 @@ async function copyCaption() {
 $("#sh-copy").onclick = copyCaption;
 $("#sh-copy-step").onclick = copyCaption;
 
+$("#d-continue").onclick = () => resume(st.res);
+
 $("#sh-posted").onclick = async () => {
+  if (st.res.status === "posted") return openBuy(); // came back from buy
   try {
     st.res = await api(`/api/reservations/${st.res.id}/posted`, { method: "POST" });
     openBuy();
@@ -550,7 +677,7 @@ function startTimer(sel, totalMs, ring) {
     const ms = Date.parse(st.res.expires_at) - Date.now();
     if (ms <= 0) return showExpired();
     const s = Math.ceil(ms / 1000);
-    $(sel).textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    $(sel).textContent = $("#d-hold-time").textContent = fmtClock(s * 1000);
     if (ring) $(ring).style.strokeDashoffset = String(100 - Math.min(100, (ms / totalMs) * 100));
   };
   draw();
