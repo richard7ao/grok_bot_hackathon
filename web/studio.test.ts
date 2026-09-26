@@ -78,3 +78,14 @@ test("dashboard.html points merchants to the studio", async () => {
   expect(html).toContain("/studio.html");
   expect(html).toContain("location.replace");
 });
+
+// Motion pass: Studio animates with the Web Animations API and must skip it under reduced motion;
+// polling must only animate reviews/events it has not seen before.
+test("studio motion uses WAAPI behind a prefers-reduced-motion guard", async () => {
+  const js = await (await fetch(`${base}/studio.js`)).text();
+  expect(js).toContain('matchMedia("(prefers-reduced-motion: reduce)")');
+  expect(js).toMatch(/if \(REDUCED\.matches \|\| !node\?\.animate\) return;/);
+  expect(js).toContain("state.seen.has(");
+  const css = await (await fetch(`${base}/studio.css`)).text();
+  expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+});

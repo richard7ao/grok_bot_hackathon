@@ -139,3 +139,18 @@ test("every non-map screen has a back button and history back is wired", async (
   expect(js).toContain('addEventListener("popstate", goBack)');
   expect(js).toContain('"s-buy": "s-share"');
 });
+
+// Motion pass: effects come from vanilla Motion (CDN) with a Web Animations fallback, and every
+// JS-driven effect must bail out for people who asked the OS for reduced motion.
+test("app motion loads Motion before app.js and respects prefers-reduced-motion", async () => {
+  const html = await (await fetch(`${base}/`)).text();
+  const motion = html.indexOf("cdn.jsdelivr.net/npm/motion@11");
+  expect(motion).toBeGreaterThan(-1);
+  expect(motion).toBeLessThan(html.indexOf('src="/app.js"'));
+  const js = await (await fetch(`${base}/app.js`)).text();
+  expect(js).toContain('matchMedia("(prefers-reduced-motion: reduce)")');
+  expect(js).toContain("window.Motion?.animate"); // optional: falls back to node.animate (WAAPI)
+  expect(js.match(/if \(REDUCED\.matches/g)?.length).toBeGreaterThanOrEqual(5);
+  const css = await (await fetch(`${base}/style.css`)).text();
+  expect(css.match(/@media \(prefers-reduced-motion: reduce\)/g)?.length).toBeGreaterThanOrEqual(2);
+});

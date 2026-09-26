@@ -25,7 +25,33 @@ const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP",
 const when = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const clock = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-const state = { campaigns: [], filter: "all", openId: null, poll: null, editingId: null, image: IMAGES[0], facts: [], map: null, pin: null };
+const state = { campaigns: [], filter: "all", openId: null, poll: null, editingId: null, image: IMAGES[0], facts: [], map: null, pin: null, fresh: false, prev: {}, seen: null };
+
+// Motion: Web Animations API only (no library needed here); springs are CSS easings in studio.css.
+// Every effect is a no-op under prefers-reduced-motion.
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
+const BLUR_IN = { opacity: [0, 1], filter: ["blur(6px)", "blur(0)"], transform: ["translateY(12px)", "none"] };
+function fx(node, keyframes, ms = 340, delay = 0) {
+  if (REDUCED.matches || !node?.animate) return;
+  node.animate(keyframes, { duration: ms, delay, easing: "cubic-bezier(.22,1,.36,1)", fill: "backwards" });
+}
+// 21st.dev "Animated List": children rise in one after another.
+const staggerIn = (nodes, step = 45, kf = BLUR_IN) => [...nodes].slice(0, 12).forEach((n, i) => fx(n, kf, 380, i * step));
+
+// 21st.dev "Number Ticker": tween a count from its previous value to the new one.
+function ticker(node, key, to) {
+  const from = state.prev[key] ?? 0;
+  state.prev[key] = to;
+  node.textContent = String(to);
+  if (REDUCED.matches || from === to || typeof to !== "number") return;
+  const t0 = performance.now(), ms = 600;
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / ms);
+    node.textContent = String(Math.round(from + (to - from) * (1 - (1 - p) ** 3)));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
 async function api(path, opts = {}) {
   const init = { ...opts, headers: opts.body ? { "content-type": "application/json" } : undefined };
@@ -99,6 +125,7 @@ function renderList() {
   }
   const shown = state.campaigns.filter((c) => matchesFilter(c, state.filter));
   $("campaign-grid").replaceChildren(...shown.map(card));
+  staggerIn($("campaign-grid").children, 50);
   $("list-empty").hidden = shown.length > 0;
 }
 
@@ -155,6 +182,8 @@ function card(c) {
 /* ---------- Views + navigation ---------- */
 
 function showView(name) {
+  const view = $(name === "list" ? "view-list" : "view-detail");
+  if (view.hidden) fx(view, BLUR_IN, 320); // 21st.dev "Blur Fade" on view change
   $("view-list").hidden = name !== "list";
   $("view-detail").hidden = name !== "detail";
   $("crumb-leaf").hidden = name !== "detail";
@@ -188,6 +217,9 @@ async function navigate(name) {
 async function openDetail(id) {
   clearInterval(state.poll);
   state.openId = id;
+  state.fresh = true; // first render of this campaign: grow bars and count up from 0
+  state.prev = {};
+  state.seen = null;
   setNav("campaigns");
   try {
     renderDetail(await api(`/api/campaigns/${id}`));
@@ -232,7 +264,9 @@ function renderDetail({ campaign: c, stats: s, reviews, events }) {
   $("kpis").replaceChildren(
     ...kpis.map(([k, v], i) => {
       const t = el("div", `kpi card${i === 4 ? " accent" : ""}`);
-      t.append(el("span", null, k), el("b", null, v));
+      const b = el("b");
+      ticker(b, `kpi:${k}`, v);
+      t.append(el("span", null, k), b);
       return t;
     }),
   );
@@ -246,13 +280,33 @@ function renderDetail({ campaign: c, stats: s, reviews, events }) {
       fill.style.width = `${Math.max(pct(v, steps[0][1]), v ? 3 : 0)}%`;
       track.append(fill);
       const conv = i === 0 ? "" : `${pct(v, steps[i - 1][1])}%`;
-      row.append(el("span", "f-label", k), track, el("b", null, v), el("span", "f-conv", conv));
+      const n = el("b");
+      ticker(n, `funnel:${k}`, v);
+      row.append(el("span", "f-label", k), track, n, el("span", "f-conv", conv));
+      if (state.fresh) fx(fill, { transform: ["scaleX(0)", "scaleX(1)"] }, 700, 120 + i * 70); // bars grow from 0 on open
       return row;
     }),
   );
 
-  $("reviews").replaceChildren(...(reviews.length ? reviews.map(review) : [el("p", "empty", "No attempts yet. Reviews appear here as creators submit.")]));
-  $("activity").replaceChildren(...(events.length ? events.map(activity) : [el("li", "empty", "Nothing yet.")]));
+  const reviewKey = (r) => `r${r.attempt_id ?? r.n}`;
+  const eventKey = (e) => `e${e.type}|${e.at}|${JSON.stringify(e.detail ?? {})}`;
+  $("reviews").replaceChildren(...(reviews.length ? reviews.map((r) => withKey(review(r), reviewKey(r))) : [el("p", "empty", "No attempts yet. Reviews appear here as creators submit.")]));
+  $("activity").replaceChildren(...(events.length ? events.map((e) => withKey(activity(e), eventKey(e))) : [el("li", "empty", "Nothing yet.")]));
+  animateNew([...$("reviews").children, ...$("activity").children]);
+  state.fresh = false;
+}
+
+const withKey = (node, key) => ((node.dataset.key = key), node);
+
+// Animated List: stagger everything on open; on later polls only genuinely new ids slide in from the top.
+function animateNew(nodes) {
+  const keyed = nodes.filter((n) => n.dataset.key);
+  if (!state.seen) {
+    state.seen = new Set(keyed.map((n) => n.dataset.key));
+    return staggerIn(nodes, 40);
+  }
+  const fresh = keyed.filter((n) => !state.seen.has(n.dataset.key));
+  fresh.forEach((n, i) => (state.seen.add(n.dataset.key), fx(n, { opacity: [0, 1], transform: ["translateY(-14px)", "none"], filter: ["blur(4px)", "blur(0)"] }, 420, i * 60)));
 }
 
 function review(r) {
@@ -548,10 +602,14 @@ async function draftWithAI() {
   $("challenge").classList.add("shimmer");
   try {
     const d = await api("/api/campaigns/draft", { method: "POST", body: JSON.stringify({ brand, title, description, facts: state.facts }) });
+    $("challenge").classList.remove("shimmer");
     $("f-prompt").value = d.prompt;
+    fx($("f-prompt"), { opacity: [0, 1], filter: ["blur(6px)", "blur(0)"] }, 450); // fields blur in once drafted
     state.facts = [...d.facts];
     renderFacts();
     renderRubric(d.rubric);
+    staggerIn($("facts-list").children, 50, { opacity: [0, 1], transform: ["scale(.85)", "none"], filter: ["blur(4px)", "blur(0)"] });
+    staggerIn($("rubric-list").children, 70);
     $("draft-note").hidden = false;
   } catch (err) {
     showError(`AI draft failed: ${err.message}`);

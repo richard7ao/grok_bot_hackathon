@@ -303,3 +303,56 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; background: tra
 
 /* .cta/.link set display, which would otherwise override the hidden attribute. */
 [hidden] { display: none !important; }
+
+/* ---------- Motion pass (21st.dev / Magic UI equivalents). All of it switches off under reduced motion. ---------- */
+.word, .digit { display: inline-block; }
+.ring-count { clip-path: inset(0 -4px); }
+
+/* Shimmer Button: a highlight sweeps across primary CTAs every few seconds; press springs to .96. */
+.cta { position: relative; overflow: hidden; transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+.cta:active:not(:disabled) { transform: scale(.96); transition-duration: .12s; }
+.shine::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.38) 50%, transparent 70%) no-repeat; background-size: 60% 100%; background-position: -150% 0; animation: shine 3.6s cubic-bezier(.4,0,.2,1) 1.2s infinite; pointer-events: none; }
+.shine:disabled::after { animation: none; }
+@keyframes shine { 0% { background-position: -150% 0; } 30%, 100% { background-position: 250% 0; } }
+
+/* Border Beam: a cobalt arc travels the border of live drops (near-you tile, drop sheet hero). */
+@property --beam { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.drop-card.live .tile, #s-drop.live .hero { position: relative; }
+.drop-card.live .tile::after, #s-drop.live .hero::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; padding: 2px; pointer-events: none; background: conic-gradient(from var(--beam), transparent 0 70%, rgba(27,92,255,.25) 80%, var(--cobalt) 92%, transparent 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: beam 3.2s linear infinite; }
+@keyframes beam { to { --beam: 360deg; } }
+
+/* Spring cards: lift on hover (pointer devices), compress on press. */
+.drop-card { transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
+.drop-card .tile { transition: box-shadow .25s; }
+@media (hover: hover) { .drop-card:hover { transform: translateY(-3px); } .drop-card:hover .tile { box-shadow: 0 12px 20px -14px rgba(0,0,0,.45); } }
+.drop-card:active { transform: scale(.96); transition-duration: .12s; }
+
+/* Ripple on live map pins; softer pulse on the user dot. */
+.pin { position: relative; isolation: isolate; }
+.pin.live::before, .pin.live::after { content: ""; position: absolute; top: 0; left: 50%; z-index: -1; width: 46px; height: 46px; margin-left: -23px; border-radius: 50%; border: 2px solid var(--cobalt); opacity: 0; animation: ripple 2.6s cubic-bezier(.2,.6,.4,1) infinite; pointer-events: none; }
+.pin.live::after { animation-delay: 1.3s; }
+@keyframes ripple { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(2.3); opacity: 0; } }
+.you { animation: pulse 2.8s ease-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(27,92,255,.35); } 70%, 100% { box-shadow: 0 0 0 12px rgba(27,92,255,0); } }
+
+/* Marquee: thin ticker across the top of the "Drops near you" sheet. */
+.marquee { overflow: hidden; margin: -2px 0 12px; padding: 7px 0; border-block: 1px solid var(--line); -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.marquee-track { display: flex; width: max-content; animation: marquee 32s linear infinite; }
+.marquee-track span { flex: none; padding-right: 4px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: var(--ink); white-space: pre; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+/* Confetti pieces (spawned by app.js) and Sparkles around the collectible polaroid. */
+.confetti { position: fixed; z-index: 1001; width: 7px; height: 11px; margin: -5px 0 0 -3px; border-radius: 1.5px; pointer-events: none; }
+.polaroid { position: relative; }
+.spark { position: absolute; width: 14px; height: 14px; background: var(--cobalt); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: twinkle 2.4s ease-in-out infinite; pointer-events: none; }
+.spark:nth-child(1) { top: -10px; left: -12px; }
+.spark:nth-child(2) { top: 28%; right: -16px; width: 10px; height: 10px; background: var(--ink); animation-delay: .6s; }
+.spark:nth-child(3) { bottom: 22%; left: -18px; width: 9px; height: 9px; background: #9A9A9A; animation-delay: 1.2s; }
+.spark:nth-child(4) { bottom: -8px; right: 14px; animation-delay: 1.8s; }
+@keyframes twinkle { 0%, 100% { transform: scale(.3) rotate(0); opacity: 0; } 50% { transform: scale(1) rotate(45deg); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .shine::after, .drop-card.live .tile::after, #s-drop.live .hero::after, .pin.live::before, .pin.live::after, .you, .marquee-track, .spark, .spinner, .typing i { animation: none; }
+  .spark { opacity: .8; transform: none; }
+  .cta, .drop-card { transition: none; }
+}
