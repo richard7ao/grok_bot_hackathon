@@ -55,7 +55,10 @@ export function openDb(path = process.env.DB_PATH ?? "dropquest.db") {
   const db = new Database(path, { create: true });
   db.exec("pragma journal_mode = wal; pragma foreign_keys = on;");
   db.exec(SCHEMA);
-  if (!db.query("select 1 from drops limit 1").get()) seedDrops(db);
+  // Every boot, so seed edits (venue pin, copy) reach an existing dropquest.db.
+  seedDrops(db);
+  // Nothing is in flight at boot: settle attempts a restart cut off, so they stop counting.
+  db.exec("update attempts set verdict = 'error' where verdict is null");
   return db;
 }
 
@@ -64,7 +67,10 @@ function seedDrops(db: Database) {
   const lng = Number(process.env.VENUE_LNG ?? -0.0785);
   const insert = db.query(
     `insert into drops (id,title,status,price_pence,image_url,lat,lng,radius_m,prompt,facts_json,rubric_json,allocation_total)
-     values (?,?,?,?,?,?,?,?,?,?,?,?)`,
+     values (?,?,?,?,?,?,?,?,?,?,?,?)
+     on conflict(id) do update set title=excluded.title, status=excluded.status, price_pence=excluded.price_pence,
+       image_url=excluded.image_url, lat=excluded.lat, lng=excluded.lng, radius_m=excluded.radius_m,
+       prompt=excluded.prompt, facts_json=excluded.facts_json, rubric_json=excluded.rubric_json`,
   );
   insert.run(
     1, "Pre-loved Hermès Birkin 25 — Gold Togo", "live", 1850000, "/img/birkin.svg", lat, lng, 150,
