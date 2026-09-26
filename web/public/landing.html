@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DropQuest — Your phone is the hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap">
+<style>
+  :root{
+    --ink:#111;
+    --muted:#6B6B6B;
+    --surface:#F2F2F2;
+    --line:rgba(0,0,0,.1);
+    --cobalt:#1B5CFF;
+    --cobalt-soft:#E6EDFF;
+    --ok:#0E8A4F;
+    --r:12px;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;background:#fff;color:var(--ink);
+    font:400 16px/1.5 Inter, system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  img{max-width:100%;display:block;}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 20px;}
+  @media (min-width:640px){ .wrap{padding:0 32px;} }
+
+  a{color:inherit;}
+  :focus-visible{outline:2px solid var(--cobalt);outline-offset:3px;border-radius:4px;}
+
+  .eyebrow{
+    display:block;text-transform:uppercase;font-size:11px;font-weight:600;
+    letter-spacing:.1em;color:var(--muted);margin:0 0 10px;
+  }
+
+  /* Masthead */
+  .masthead{
+    display:flex;align-items:baseline;justify-content:space-between;
+    padding:20px;border-bottom:1px solid var(--line);
+  }
+  @media (min-width:640px){ .masthead{padding:24px 32px;} }
+  .brand{font-family:"Inter Tight",Inter,sans-serif;font-weight:800;letter-spacing:-.02em;font-size:18px;}
+  .brand .by{font-family:Inter,sans-serif;font-weight:500;font-size:13px;color:var(--muted);letter-spacing:0;margin-left:6px;}
+  .masthead .tag{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+
+  /* Hero: split, phone as hero */
+  .hero-b{display:grid;gap:32px;grid-template-columns:minmax(0,1fr);padding:40px 0 48px;align-items:start;}
+  @media (min-width:900px){ .hero-b{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:56px;padding:56px 0 64px;} }
+
+  .display{
+    font-family:"Inter Tight",Inter,sans-serif;font-weight:800;letter-spacing:-.03em;line-height:1.03;
+    font-size:clamp(2.1rem, 4vw + 1.2rem, 4.5rem);margin:0 0 18px;
+  }
+  .dek{font-size:clamp(1rem, .4vw + .95rem, 1.15rem);color:var(--muted);max-width:46ch;margin:0;}
+
+  /* Two-step path (mockup 1 CTA style + mockup 2 guided state) */
+  .path-b{display:flex;flex-direction:column;gap:16px;margin-top:32px;padding-top:28px;border-top:1px solid var(--line);}
+  .step-block{display:flex;flex-direction:column;gap:10px;transition:opacity .2s ease;}
+  .step-block.done{opacity:.55;}
+  .step-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .step-cta{
+    display:inline-flex;align-items:center;gap:12px;border-radius:999px;padding:16px 26px;
+    font-weight:700;text-decoration:none;font-size:15px;width:fit-content;
+  }
+  .step-cta .step-num{font-family:"Inter Tight",sans-serif;font-weight:800;font-size:13px;opacity:.7;}
+  .step-label .sub{display:block;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.75;}
+  .step-cta.primary{background:var(--cobalt);color:#fff;}
+  .step-cta.primary:hover{background:#1449d6;}
+  .step-cta.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink);}
+  .step-cta.ghost:hover{background:var(--surface);}
+  .step-cta.ghost.current{box-shadow:0 0 0 2px var(--cobalt);}
+  .step-copy{margin:0;color:var(--muted);font-size:14px;max-width:38ch;}
+
+  .state-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:5px 11px;border-radius:999px;white-space:nowrap;}
+  .state-badge.start{background:var(--cobalt-soft);color:var(--cobalt);}
+  .state-badge.next{background:var(--cobalt);color:#fff;}
+  .state-tick{font-size:12px;font-weight:700;color:var(--ok);white-space:nowrap;}
+
+  .connector{display:flex;align-items:center;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+  .connector::before{content:"";width:20px;height:1px;background:var(--line);}
+
+  .reset-btn{align-self:flex-start;background:none;border:0;font:inherit;font-size:13px;font-weight:600;color:var(--muted);text-decoration:underline;cursor:pointer;padding:6px 0;}
+
+  /* Phone stage (mockup 2 phone frame + mockup 1 sticker/caption, pinned like annotations) */
+  .phone-frame-wrap{position:relative;width:fit-content;margin:0 auto;}
+  .phone-frame{width:180px;height:368px;border:6px solid #111;border-radius:28px;overflow:hidden;background:#000;}
+  .phone-frame iframe{display:block;width:430px;height:880px;border:0;pointer-events:none;transform:scale(.4186);transform-origin:top left;}
+  @media (min-width:900px){
+    .phone-frame{width:200px;height:409px;border-radius:32px;}
+    .phone-frame iframe{transform:scale(.4651);}
+  }
+
+  .pin-sticker{
+    position:absolute;top:10px;right:10px;background:var(--cobalt);color:#fff;
+    font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;
+  }
+  .pin-tag{
+    position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);
+    background:rgba(17,17,17,.92);color:#fff;border-radius:10px;padding:10px 12px;
+  }
+  .pin-tag .cap-title{font-size:11px;font-weight:600;margin:0 0 2px;}
+  .pin-tag .cap-price{font-family:"Inter Tight",sans-serif;font-weight:700;font-size:14px;margin:0;}
+  @media (min-width:900px){
+    .pin-sticker{top:-10px;right:-14px;transform:rotate(6deg);box-shadow:0 8px 16px rgba(17,17,17,.18);}
+    .pin-tag{left:-16px;bottom:26px;transform:rotate(-4deg);background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:0 10px 22px rgba(17,17,17,.14);}
+  }
+
+  /* How a drop works: thin-rule callouts (desktop) / plain numbered list (mobile) */
+  .beats-heading{margin:24px 0 14px;}
+  .beats-b{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);}
+  .beats-b li{border-top:1px solid var(--line);padding:14px 0;}
+  .beats-b .beat-num{display:block;font-family:"Inter Tight",sans-serif;font-weight:700;font-size:12px;color:var(--cobalt);margin-bottom:6px;}
+  .beats-b h3{font-size:14px;margin:0 0 4px;}
+  .beats-b p{margin:0;color:var(--muted);font-size:13px;}
+  @media (min-width:900px){ .beats-b{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;} }
+
+  /* Merchant side: wide browser frame + editorial captions */
+  .merchant{border-top:1px solid var(--line);padding:48px 0 72px;}
+  .browser-frame.wide{width:280px;max-width:100%;margin:24px 0 32px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#fff;}
+  .browser-frame.wide .browser-chrome{display:flex;align-items:center;gap:6px;padding:9px 10px;background:#E9E9E9;border-bottom:1px solid var(--line);}
+  .browser-frame.wide .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .browser-frame.wide .browser-url{margin-left:6px;flex:1;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .browser-frame.wide .browser-viewport{width:280px;height:175px;overflow:hidden;}
+  .browser-frame.wide .browser-viewport iframe{display:block;width:1440px;height:900px;border:0;pointer-events:none;transform:scale(.1944);transform-origin:top left;}
+  @media (min-width:900px){
+    .browser-frame.wide{width:640px;}
+    .browser-frame.wide .browser-viewport{width:640px;height:400px;}
+    .browser-frame.wide .browser-viewport iframe{transform:scale(.4444);}
+  }
+  .merchant-captions{list-style:none;margin:0 0 28px;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:20px;}
+  .merchant-captions .cap-eyebrow{display:block;text-transform:uppercase;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--cobalt);margin-bottom:6px;}
+  .merchant-captions p{margin:0;color:var(--muted);font-size:14px;}
+  @media (min-width:900px){ .merchant-captions{grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;} }
+
+  /* Live now */
+  .live{border-top:1px solid var(--line);padding:48px 0 72px;}
+  .live-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
+  .live-head .eyebrow{margin:0;}
+  .live-count{margin:0;font-size:13px;color:var(--muted);}
+  .rail{display:flex;gap:16px;overflow-x:auto;list-style:none;margin:0;padding:4px 4px 12px;scroll-snap-type:x proximity;}
+  .drop-card{flex:0 0 188px;scroll-snap-align:start;}
+  .thumb{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/5;background:var(--surface);}
+  .thumb img{width:100%;height:100%;object-fit:cover;}
+  .drop-card:has(.badge.sold) .thumb img{filter:grayscale(.5);opacity:.55;}
+  .badge{
+    position:absolute;left:8px;bottom:8px;display:inline-flex;align-items:center;gap:6px;
+    background:rgba(255,255,255,.94);font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;
+  }
+  .badge.live{color:var(--cobalt);}
+  .badge.live i{width:6px;height:6px;border-radius:50%;background:var(--cobalt);}
+  .badge.sold,.badge.soon{color:var(--muted);}
+  .card-title{font-size:13px;font-weight:600;margin:10px 0 2px;}
+  .card-price{font-size:13px;color:var(--muted);margin:0;}
+
+  /* Footer */
+  footer{border-top:1px solid var(--line);padding:28px 20px 48px;}
+  @media (min-width:640px){ footer{padding:32px 32px 56px;} }
+  .fine{font-size:12px;color:var(--muted);max-width:640px;margin:0 0 8px;}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important;}
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <span class="brand">DropQuest<span class="by">by Fleek</span></span>
+  <span class="tag">Hackathon demo</span>
+</header>
+
+<main>
+  <section class="hero-b wrap">
+    <div class="hero-text">
+      <p class="eyebrow">Live drop · pre-loved</p>
+      <h1 class="display">Wear it before<br>it's gone.</h1>
+      <p class="dek">DropQuest turns scarce resale stock into a location-based quest — walk to the pin, film your take, and let an AI stylist unlock the buy.</p>
+
+      <div class="path-b">
+        <div class="step-block" id="step1block">
+          <div class="step-row">
+            <a class="step-cta primary" href="/mobile" id="mobile-cta">
+              <span class="step-num">01</span>
+              <span class="step-label">Be the shopper<span class="sub">Mobile</span></span>
+            </a>
+            <span class="state-badge start" id="badge1">Start here</span>
+            <span class="state-tick" id="tick1" hidden>✓ Done</span>
+          </div>
+          <p class="step-copy">Opens the shopper app in a phone-sized window — find the live pin, film a styling take, and get the AI stylist's verdict.</p>
+        </div>
+
+        <div class="connector" aria-hidden="true"><span>then</span></div>
+
+        <div class="step-block" id="step2block">
+          <div class="step-row">
+            <a class="step-cta ghost" href="/desktop" target="_blank" rel="noopener" id="cta2">
+              <span class="step-num">02</span>
+              <span class="step-label">Be the merchant<span class="sub">Desktop</span></span>
+            </a>
+            <span class="state-badge next" id="badge2" hidden>Next</span>
+          </div>
+          <p class="step-copy">Opens DropQuest Studio — watch campaigns, every AI-reviewed entry, and live stock update in real time.</p>
+        </div>
+
+        <button type="button" id="reset" class="reset-btn" hidden>Start over</button>
+      </div>
+    </div>
+
+    <div class="phone-col">
+      <figure class="phone-frame-wrap">
+        <div class="phone-frame" aria-hidden="true">
+          <iframe src="/mobile" title="Live preview of the DropQuest shopper app" loading="lazy" tabindex="-1"></iframe>
+        </div>
+        <span class="pin-sticker" id="hero-badge">2 of 3 left</span>
+        <figcaption class="pin-tag">
+          <p class="cap-title">Pre-loved Hermès Birkin 25 — Gold Togo</p>
+          <p class="cap-price" id="hero-price">£18,500</p>
+        </figcaption>
+      </figure>
+
+      <h2 class="eyebrow beats-heading">How a drop works</h2>
+      <ol class="beats-b">
+        <li><span class="beat-num">01</span><h3>Walk to the pin</h3><p>Get within 150 m of the pin on the map and the drop unlocks.</p></li>
+        <li><span class="beat-num">02</span><h3>Film 10–20 s</h3><p>Show your outfit and how you'd style the piece, on camera.</p></li>
+        <li><span class="beat-num">03</span><h3>AI review</h3><p>An AI stylist checks your take against a short rubric — three tries per drop.</p></li>
+        <li><span class="beat-num">04</span><h3>Hold, post, buy</h3><p>Pass and hold the item for 10 minutes — post the Reel, then buy.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="merchant wrap" aria-label="The merchant side">
+    <h2 class="eyebrow">Then, the merchant side</h2>
+    <div class="browser-frame wide" aria-hidden="true">
+      <div class="browser-chrome">
+        <span class="dot" style="background:#FF5F57"></span>
+        <span class="dot" style="background:#FEBC2E"></span>
+        <span class="dot" style="background:#28C840"></span>
+        <span class="browser-url">localhost / studio</span>
+      </div>
+      <div class="browser-viewport">
+        <iframe src="/desktop" title="Preview of DropQuest Studio" loading="lazy" tabindex="-1"></iframe>
+      </div>
+    </div>
+    <ul class="merchant-captions">
+      <li><span class="cap-eyebrow">Campaigns</span><p>Create and run drops from one dashboard.</p></li>
+      <li><span class="cap-eyebrow">Reviews</span><p>Every entry, and the AI stylist's verdict against the rubric.</p></li>
+      <li><span class="cap-eyebrow">Analytics</span><p>Live stock — held, posted, sold, available — and the funnel.</p></li>
+    </ul>
+    <a class="step-cta ghost" href="/desktop" target="_blank" rel="noopener">
+      <span class="step-num">02</span>
+      <span class="step-label">Open DropQuest Studio<span class="sub">Desktop</span></span>
+    </a>
+  </section>
+
+  <section class="live wrap">
+    <div class="live-head">
+      <h2 class="eyebrow">Live now</h2>
+      <p class="live-count" id="live-count">4 drops live</p>
+    </div>
+    <ul class="rail" id="rail">
+      <li class="drop-card">
+        <div class="thumb"><img src="/img/photos/birkin.jpg" alt="Pre-loved Hermès Birkin 25 — Gold Togo" loading="lazy"><span class="badge live"><i aria-hidden="true"></i>Live · 2 left</span></div>
+        <p class="card-title">Pre-loved Hermès Birkin 25 — Gold Togo</p>
+        <p class="card-price">£18,500</p>
+      </li>
+      <li class="drop-card">
+        <div class="thumb"><img src="/img/photos/xt6.jpg" alt="Salomon XT-6 — Black/Phantom, Deadstock" loading="lazy"><span class="badge live"><i aria-hidden="true"></i>Live · 6 left</span></div>
+        <p class="card-title">Salomon XT-6 — Black/Phantom, Deadstock</p>
+        <p class="card-price">£190</p>
+      </li>
+      <li class="drop-card">
+        <div class="thumb"><img src="/img/photos/arcteryx.jpg" alt="Vintage Arc'teryx Alpha SV — Made in Canada" loading="lazy"><span class="badge sold">Sold out</span></div>
+        <p class="card-title">Vintage Arc'teryx Alpha SV — Made in Canada</p>
+        <p class="card-price">£420</p>
+      </li>
+      <li class="drop-card">
+        <div class="thumb"><img src="/img/photos/carhartt.jpg" alt="Vintage Carhartt Detroit Jacket — Faded Brown Duck" loading="lazy"><span class="badge sold">Sold out</span></div>
+        <p class="card-title">Vintage Carhartt Detroit Jacket — Faded Brown Duck</p>
+        <p class="card-price">£180</p>
+      </li>
+      <li class="drop-card">
+        <div class="thumb"><img src="/img/photos/baguette.jpg" alt="Vintage Fendi Baguette — 1999 Monogram" loading="lazy"><span class="badge soon">Coming soon</span></div>
+        <p class="card-title">Vintage Fendi Baguette — 1999 Monogram</p>
+        <p class="card-price">£1,450</p>
+      </li>
+      <li class="drop-card">
+        <div class="thumb"><img src="/img/photos/flats.jpg" alt="Miu Miu Satin Ballet Flats — Blush" loading="lazy"><span class="badge soon">Coming soon</span></div>
+        <p class="card-title">Miu Miu Satin Ballet Flats — Blush</p>
+        <p class="card-price">£790</p>
+      </li>
+      <li class="drop-card">
+        <div class="thumb"><img src="/img/photos/stoneisland.jpg" alt="Stone Island Crinkle Reps Jacket — 2003" loading="lazy"><span class="badge soon">Coming soon</span></div>
+        <p class="card-title">Stone Island Crinkle Reps Jacket — 2003</p>
+        <p class="card-price">£520</p>
+      </li>
+      <li class="drop-card">
+        <div class="thumb"><img src="/img/photos/football.jpg" alt="Arsenal 1990s Home Shirt — JVC" loading="lazy"><span class="badge soon">Coming soon</span></div>
+        <p class="card-title">Arsenal 1990s Home Shirt — JVC</p>
+        <p class="card-price">£140</p>
+      </li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p class="fine">Location and posting are self-reported for this demo. Checkout is simulated. Brand listings are demo listings and are not affiliated with the brands shown.</p>
+  <p class="fine">Photos: Unsplash, Pexels.</p>
+</footer>
+
+<script>
+(() => {
+  const money = (pence) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(pence / 100);
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const badgeFor = (d) => d.status === 'preview'
+    ? { cls: 'soon', text: 'Coming soon' }
+    : d.available > 0
+      ? { cls: 'live', text: `Live · ${d.available} left` }
+      : { cls: 'sold', text: 'Sold out' };
+  const cardHTML = (d) => {
+    const b = badgeFor(d);
+    return `<li class="drop-card">
+      <div class="thumb"><img src="${esc(d.image_url)}" alt="${esc(d.title)}" loading="lazy">
+      <span class="badge ${b.cls}">${b.cls === 'live' ? '<i aria-hidden="true"></i>' : ''}${esc(b.text)}</span></div>
+      <p class="card-title">${esc(d.title)}</p>
+      <p class="card-price">${esc(money(d.price_pence))}</p>
+    </li>`;
+  };
+
+  // Guided state: Step 1 done -> Step 2 becomes "Next", with a "Start over" reset.
+  const KEY = 'dq_landing_step1_used';
+  const step1block = document.getElementById('step1block');
+  const cta2 = document.getElementById('cta2');
+  const badge1 = document.getElementById('badge1');
+  const badge2 = document.getElementById('badge2');
+  const tick1 = document.getElementById('tick1');
+  const resetBtn = document.getElementById('reset');
+
+  const applyState = (done) => {
+    step1block.classList.toggle('done', done);
+    badge1.hidden = done;
+    tick1.hidden = !done;
+    cta2.classList.toggle('current', done);
+    badge2.hidden = !done;
+    resetBtn.hidden = !done;
+  };
+
+  let already = false;
+  try { already = sessionStorage.getItem(KEY) === '1'; } catch (e) {}
+  applyState(already);
+
+  // Step 1: href="/mobile" already works with no JS; only hijack the click when a popup actually opens.
+  document.getElementById('mobile-cta').addEventListener('click', (e) => {
+    let w = null;
+    try { w = window.open('/mobile', 'dq-mobile', 'popup,width=430,height=880'); } catch (e) {}
+    if (w) {
+      e.preventDefault();
+      try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+      applyState(true);
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    try { sessionStorage.removeItem(KEY); } catch (e) {}
+    applyState(false);
+  });
+
+  // Live touch: the page already shows real (if static) numbers, so a failed fetch just
+  // leaves them as-is — it should never look broken.
+  fetch('/api/drops')
+    .then(res => res.ok ? res.json() : Promise.reject(new Error('bad status')))
+    .then(({ drops = [] }) => {
+      if (!drops.length) return;
+      const hero = drops.find(d => d.id === 1) ?? drops[0];
+      const heroBadge = document.getElementById('hero-badge');
+      const heroPrice = document.getElementById('hero-price');
+      if (heroBadge) heroBadge.textContent = hero.status === 'preview' ? 'Coming soon' : hero.available > 0 ? `${hero.available} of ${hero.allocation_total} left` : 'Sold out';
+      if (heroPrice) heroPrice.textContent = money(hero.price_pence);
+
+      const rail = document.getElementById('rail');
+      if (rail) rail.innerHTML = drops.map(cardHTML).join('');
+
+      const liveCount = document.getElementById('live-count');
+      const n = drops.filter(d => d.status === 'live').length;
+      if (liveCount) liveCount.textContent = `${n} ${n === 1 ? 'drop' : 'drops'} live`;
+    })
+    .catch(() => {});
+})();
+</script>
+</body>
+</html>

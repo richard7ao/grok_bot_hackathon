@@ -24,7 +24,7 @@ afterAll(() => proc.kill());
 const SCREENS = ["s-map", "s-drop", "s-record", "s-preview", "s-review", "s-result", "s-share", "s-buy", "s-done"];
 
 test("index has every screen, Leaflet and app.js", async () => {
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/mobile`)).text();
   for (const id of SCREENS) expect(html).toContain(`id="${id}"`);
   expect(html).toContain("maplibre-gl@4.7.1/dist/maplibre-gl.js");
   expect(html).toContain('src="/app.js"');
@@ -47,7 +47,7 @@ test("app.js only calls contract routes", async () => {
 // The review verdict is held back for a timed reveal; a demo button must be able to skip the wait,
 // and a reload mid-wait must be able to recover it from localStorage.
 test("review wait screen, demo fast-forward and reload recovery are wired", async () => {
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/mobile`)).text();
   expect(html).toContain('id="s-wait"');
   expect(html).toContain('id="w-skip"');
   const js = await (await fetch(`${base}/app.js`)).text();
@@ -110,7 +110,7 @@ test("dashboard page and data are served", async () => {
 // Reels-style camera: the tool rail, shutter, live captions and hint chips must exist, and the
 // existing ids the recording flow depends on must survive the redesign.
 test("record and preview screens carry the Reels camera controls", async () => {
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/mobile`)).text();
   const ids = ["r-live", "r-go", "r-stop", "r-clock", "r-note", "r-prompt", "r-close", "r-shutter", "r-flip", "r-timer", "r-hints", "r-guide", "r-guides", "r-captions", "r-count", "r-blocked", "r-retry", "r-fill1", "r-fill2", "r-chip-outfit", "r-chip-styling", "r-chip-detail", "p-video", "p-transcript", "p-submit", "p-retake", "p-back", "p-dur", "p-chip-outfit", "p-chip-styling", "p-chip-detail"];
   for (const id of ids) expect(html).toContain(`id="${id}"`);
   expect(html).toContain("Hints only — your stylist makes the call.");
@@ -127,7 +127,7 @@ test("app.js uses interim speech results and the contract's clip limits", async 
 // Native-feel navigation: every non-map screen except the in-flight review has a back chevron,
 // and the browser/OS back gesture routes through the same parent map.
 test("every non-map screen has a back button and history back is wired", async () => {
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/mobile`)).text();
   const sections = html.split('<section id="').slice(1).map((s) => [s.slice(0, s.indexOf('"')), s] as const);
   for (const [id, body] of sections) {
     if (id === "s-map") continue;
@@ -144,7 +144,7 @@ test("every non-map screen has a back button and history back is wired", async (
 // Motion pass: effects come from vanilla Motion (CDN) with a Web Animations fallback, and every
 // JS-driven effect must bail out for people who asked the OS for reduced motion.
 test("app motion loads Motion before app.js and respects prefers-reduced-motion", async () => {
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/mobile`)).text();
   const motion = html.indexOf("cdn.jsdelivr.net/npm/motion@11");
   expect(motion).toBeGreaterThan(-1);
   expect(motion).toBeLessThan(html.indexOf('src="/app.js"'));
@@ -157,7 +157,7 @@ test("app motion loads Motion before app.js and respects prefers-reduced-motion"
 });
 
 test("record screen burns the product sticker into the recording and frames", async () => {
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/mobile`)).text();
   for (const id of ["r-sticker", "r-sticker-img", "r-sticker-toggle", "r-canvas"]) expect(html).toContain(`id="${id}"`);
   const js = await (await fetch(`${base}/app.js`)).text();
   expect(js).toContain('$("#r-canvas").captureStream(30)'); // recorder gets the composited canvas, not the raw camera
@@ -166,12 +166,12 @@ test("record screen burns the product sticker into the recording and frames", as
 });
 
 test("customer app uses real product photos, not the SVG placeholders", async () => {
-  for (const path of ["/", "/app.js"]) expect(await (await fetch(base + path)).text()).not.toMatch(/\/img\/(?!avatar\.svg)[\w-]+\.svg/); // avatar.svg is the map "you" marker, not a product
+  for (const path of ["/mobile", "/app.js"]) expect(await (await fetch(base + path)).text()).not.toMatch(/\/img\/(?!avatar\.svg)[\w-]+\.svg/); // avatar.svg is the map "you" marker, not a product
 });
 
 // Demo-only escape hatch: a presenter can force a pass from the result screen.
 test("result screen has a demo approve button wired to the approve route", async () => {
-  expect(await (await fetch(`${base}/`)).text()).toContain('id="res-approve"');
+  expect(await (await fetch(`${base}/mobile`)).text()).toContain('id="res-approve"');
   expect(await (await fetch(`${base}/app.js`)).text()).toContain("api(`/api/attempts/${st.approveId}/approve`");
   const body = await (await fetch(`${base}/api/attempts/1/approve`, { method: "POST" })).json();
   expect(body.attempt.verdict).toBe("pass");
@@ -184,9 +184,18 @@ test("map clusters drops and has All drops / Near me controls", async () => {
   expect(js).toContain("cluster: true");
   expect(js).toContain("getClusterExpansionZoom");
   expect(js).toContain("querySourceFeatures");
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/mobile`)).text();
   for (const id of ["map-all", "map-me"]) {
     expect(html).toContain(`id="${id}"`);
     expect(js).toContain(`$("#${id}")`);
   }
+});
+
+test("clean URLs: / is the landing page, /mobile the shopper app, /desktop Studio", async () => {
+  const landing = await (await fetch(`${base}/`)).text();
+  expect(landing).toContain('href="/mobile"');
+  expect(landing).toContain('href="/desktop"');
+  const page = async (path: string) => (await fetch(base + path)).text();
+  expect(await page("/mobile/")).toBe(await page("/index.html"));
+  expect(await page("/desktop")).toBe(await page("/studio.html"));
 });
