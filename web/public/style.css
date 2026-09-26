@@ -407,7 +407,6 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; background: tra
 
 /* Darwin-inspired motion. Map: live pins pulse a ring (transform/opacity only, so it stays on the compositor).
    Queue: the stylist avatar bobs and the status line types dots. Drop sheet: the product tilts toward the pointer. */
-.pin { position: relative; }
 .pin.live::before { content: ""; position: absolute; top: 0; left: 50%; width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; border: 2px solid var(--cobalt); box-sizing: border-box; pointer-events: none; animation: pin-ring 1.8s ease-out infinite; }
 @keyframes pin-ring { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.7); opacity: 0; } }
 #s-wait .dmhead .avatar { animation: bob 2.6s ease-in-out infinite; }

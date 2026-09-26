@@ -225,3 +225,13 @@ test("record screen offers a video upload that submits with its source, direct t
   expect(js).toContain('source: "upload"');
   expect(js).toContain("Transcribing your video…");
 });
+
+// MapLibre positions marker elements absolutely; a `position` on the .pin/.you/.cluster root puts
+// markers in normal flow, so each pin is offset by the ones before it and they drift or vanish.
+test("map marker roots never set position (keeps pins on their coordinates)", async () => {
+  const css = await (await fetch(`${base}/style.css`)).text();
+  for (const m of css.matchAll(/(?:^|\})\s*([^{}]+)\{([^}]*)\}/g)) {
+    const roots = m[1].split(",").map((s) => s.trim()).filter((s) => /^\.(pin|you|cluster)(\.[\w-]+)*$/.test(s));
+    if (roots.length) expect(m[2]).not.toMatch(/(^|;)\s*position\s*:/);
+  }
+});
