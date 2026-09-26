@@ -1,0 +1,14 @@
+name: keep-render-awake
+# Render's free tier sleeps after 15 min idle. GitHub's shortest schedule is every
+# 5 minutes (and runs can be delayed), which is enough to keep it warm.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping the API
+        run: curl -fsS --retry 3 --retry-delay 10 --max-time 60 -o /dev/null -w "%{http_code} in %{time_total}s\n" https://dropquest.onrender.com/api/drops
