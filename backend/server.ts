@@ -1,9 +1,9 @@
 import { mkdirSync } from "node:fs";
 import { basename, join } from "node:path";
-import { readJson, validateCampaign } from "./campaigns";
-import { ApiError, approveAttempt, buy, campaignDetail, claimHold, createAttempt, createCampaign, dashboard, dropState, getDrop, getReservation, listCampaigns, listDrops, markPosted, openDb, reset, saveReview, updateCampaign, type Drop } from "./db";
+import { parseDecision, readJson, validateCampaign, validateReview } from "./campaigns";
+import { ApiError, approveAttempt, attemptWithReservation, buy, campaignDetail, claimHold, createAttempt, createCampaign, dashboard, decideAttempt, dropState, getAttempt, getDrop, getReservation, listCampaigns, listDrops, markPosted, openDb, reset, reviewSettings, saveReview, updateCampaign, updateReviewSettings, type Attempt, type Drop } from "./db";
 import { draftChallenge, parseDraftInput } from "./draft";
-import { errorReview, reviewAttempt, type Review } from "./review";
+import { decide, demoPassReview, errorReview, reviewAttempt, type Review } from "./review";
 
 const UPLOADS = process.env.UPLOADS_DIR ?? "uploads";
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
@@ -54,19 +54,21 @@ async function postAttempt(req: Req) {
   let review: Review;
   try {
     await Bun.write(join(UPLOADS, videoPath), video);
+    const settings = reviewSettings(db, drop.id);
     review = demoPass
-      ? { verdict: "pass", criteria: drop.rubric.map((c) => ({ id: c.id, result: "pass" as const, evidence: "Approved manually (demo)" })), feedback: "Approved in demo mode.", suggested_caption: null }
-      : await reviewAttempt({ drop, transcript, frames: await Promise.all(frames.map(toDataUrl)) });
+      ? demoPassReview(drop)
+      : decide(await reviewAttempt({ drop, transcript, frames: await Promise.all(frames.map(toDataUrl)), scoringPrompt: settings.scoring_prompt }), settings);
   } catch (e) {
     // Settle the attempt anyway: a verdict-less attempt would count as in-flight forever.
     console.error(e);
     review = errorReview("Could not process your clip");
   }
   saveReview(db, attempt.id, review);
-  return attemptResponse(drop, { id: attempt.id, n: attempt.n, ...review });
+  return attemptResponse(drop, getAttempt(db, attempt.id));
 }
 
-function attemptResponse(drop: Drop, attempt: Review & { id: number; n: number }) {
+// A pass claims the hold here; pending/retry/error hold nothing.
+function attemptResponse(drop: Drop, attempt: Attempt) {
   let reservation = null;
   let error = null;
   if (attempt.verdict === "pass") {
@@ -91,6 +93,7 @@ const server = Bun.serve({
     "/api/drops": { GET: handle(() => Response.json({ server_time: new Date().toISOString(), drops: listDrops(db) })) },
     "/api/drops/:id/state": { GET: handle((req) => Response.json(dropState(db, idOf(req)))) },
     "/api/drops/:id/attempts": { POST: handle(postAttempt) },
+    "/api/attempts/:id": { GET: handle((req) => Response.json(attemptWithReservation(db, idOf(req)))) },
     "/api/attempts/:id/approve": { POST: handle(approve) },
     "/api/reservations/:id": { GET: handle((req) => Response.json(getReservation(db, idOf(req)))) },
     "/api/reservations/:id/posted": { POST: handle((req) => Response.json(markPosted(db, idOf(req)))) },
@@ -114,7 +117,17 @@ const server = Bun.serve({
         const existing = getDrop(db, idOf(req));
         if (!existing) throw new ApiError(404, "NOT_FOUND", "No such campaign");
         const patch = await readJson(req);
-        return Response.json(updateCampaign(db, existing.id, validateCampaign({ ...existing, ...patch })));
+        const campaign = validateCampaign({ ...existing, ...patch });
+        const review = patch.review === undefined ? null : validateReview(patch.review, reviewSettings(db, existing.id));
+        if (review) updateReviewSettings(db, existing.id, review);
+        return Response.json(updateCampaign(db, existing.id, campaign));
+      }),
+    },
+    "/api/campaigns/:id/decisions": {
+      POST: handle(async (req) => {
+        const { attemptId, decision, note } = parseDecision(await readJson(req));
+        const { drop, attempt } = decideAttempt(db, idOf(req), attemptId, decision, note);
+        return attemptResponse(drop, attempt);
       }),
     },
     "/uploads/:file": {
