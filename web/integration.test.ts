@@ -40,20 +40,24 @@ test("static assets are served", async () => {
 test("app.js only calls contract routes", async () => {
   const js = await (await fetch(`${base}/app.js`)).text();
   const calls = [...js.matchAll(/api\(`([^`]+)`/g), ...js.matchAll(/api\("([^"]+)"/g)].map((m) => m[1].replace(/\$\{[^}]+\}/g, ":id"));
-  const allowed = ["/api/drops", "/api/drops/:id/state", "/api/drops/:id/attempts", "/api/reservations/:id/posted", "/api/reservations/:id/buy", "/api/attempts/:id/approve"];
+  const allowed = ["/api/drops", "/api/drops/:id/state", "/api/drops/:id/attempts", "/api/reservations/:id/posted", "/api/reservations/:id/buy", "/api/attempts/:id/approve", "/api/attempts/:id"];
   for (const c of calls) expect(allowed).toContain(c);
 });
 
-// The review verdict is held back for a timed reveal; a demo button must be able to skip the wait,
-// and a reload mid-wait must be able to recover it from localStorage.
-test("review wait screen, demo fast-forward and reload recovery are wired", async () => {
+// Takes queue for the merchant (v3): the wait screen shows the real score and rank and polls the
+// attempt until it is picked. A reload must resume polling, and a demo button must be able to skip it.
+test("queue screen shows the score and polls the attempt, with a demo skip and reload recovery", async () => {
   const html = await (await fetch(`${base}/mobile`)).text();
-  expect(html).toContain('id="s-wait"');
-  expect(html).toContain('id="w-skip"');
+  for (const id of ["s-wait", "w-skip", "w-ring", "w-score", "w-metrics", "w-rank", "w-feedback", "res-ring", "res-metrics"]) expect(html).toContain(`id="${id}"`);
+  expect(html).toContain("Skip review (demo)");
   const js = await (await fetch(`${base}/app.js`)).text();
-  expect(js).toContain("REVIEW_WAIT_MS");
+  expect(js).not.toContain("REVIEW_WAIT_MS"); // no fake timed reveal any more
+  expect(js).toContain("api(`/api/attempts/${p.attempt_id}`)");
+  expect(js).toContain("setInterval(pollAttempt, POLL_MS)");
+  expect(js).toContain('verdict === "pending"');
   expect(js).toContain("dq_pending");
   expect(js.indexOf("loadPending()")).toBeLessThan(js.indexOf("/state`"));
+  for (const key of ["outfit", "styling", "product_detail", "energy", "quality"]) expect(js).toContain(`"${key}"`);
 });
 
 test("every drop image in the mock is served", async () => {
@@ -68,7 +72,7 @@ test("mock serves the live drop the map needs", async () => {
   expect(typeof live.lat).toBe("number");
 });
 
-test("mock attempts alternate retry then pass with a held reservation", async () => {
+test("mock queues attempts as pending, then polling returns a pass with a live hold", async () => {
   const form = () => {
     const f = new FormData();
     f.set("video", new File([new Uint8Array(10)], "clip.webm", { type: "video/webm" }));
@@ -77,11 +81,22 @@ test("mock attempts alternate retry then pass with a held reservation", async ()
   };
   await fetch(`${base}/api/demo/reset`, { method: "POST" });
   const first = await (await fetch(`${base}/api/drops/1/attempts`, { method: "POST", body: form() })).json();
-  expect(first.attempt.verdict).toBe("retry");
-  expect(first.attempt.feedback.length).toBeGreaterThan(0);
+  expect(first.attempt.verdict).toBe("pending");
+  expect(first.attempt.id).toBe(1);
+  expect(first.attempt.score).toBeGreaterThan(0);
+  expect(first.attempt.rank).toBeGreaterThan(0);
+  expect(first.reservation).toBeNull();
   const second = await (await fetch(`${base}/api/drops/1/attempts`, { method: "POST", body: form() })).json();
-  expect(second.reservation.status).toBe("held");
-  expect(Date.parse(second.reservation.expires_at)).toBeGreaterThan(Date.now());
+  expect(second.attempt.id).toBe(2);
+  const verdicts = [];
+  let last;
+  for (let i = 0; i < 3; i++) {
+    last = await (await fetch(`${base}/api/attempts/1`)).json();
+    verdicts.push(last.attempt.verdict);
+  }
+  expect(verdicts).toEqual(["pending", "pending", "pass"]);
+  expect(last.reservation.status).toBe("held");
+  expect(Date.parse(last.reservation.expires_at)).toBeGreaterThan(Date.now());
 });
 
 test("app.js sends the multipart fields the contract names", async () => {

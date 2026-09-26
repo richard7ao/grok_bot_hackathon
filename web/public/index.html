@@ -44,8 +44,10 @@
       <div id="d-hold" class="hold-row" hidden><span class="pill sage">Held for you · <b id="d-hold-time" class="tnum"></b> left</span><button id="d-continue" class="cta">Continue</button></div>
       <div class="prompt"><h2>Your challenge</h2><p id="d-prompt"></p></div>
       <h2>Drop card</h2><ul id="d-facts" class="chips"></ul>
-      <h2>Your stylist checks for</h2><ul id="d-rubric" class="checks"></ul>
-      <p class="rules">Pass the style review to hold one item for 10 minutes. Post your clip to Instagram to unlock early access at the listed price. Stock is limited, so qualifying does not guarantee a unit.</p>
+      <h2>How takes are scored</h2>
+      <ul class="checks scored"><li>Outfit</li><li>Styling</li><li>Drop-card detail</li><li>Energy</li><li>Video quality</li></ul>
+      <h2>Include</h2><ul id="d-rubric" class="checks"></ul>
+      <p class="rules">Each take gets a score out of 100. When the merchant picks yours, one item is held for 10 minutes. Post your clip to Instagram to unlock early access at the listed price. Stock is limited, so qualifying does not guarantee a unit.</p>
       <button id="d-start" class="cta shine">Start challenge</button>
       <p id="d-why" class="hint center"></p>
     </div>
@@ -133,24 +135,24 @@
   </section>
 
   <section id="s-wait" class="screen" hidden>
-    <!-- Honest by design: the AI review has already run on the server and its verdict is stored
-         in this browser (st.pending + localStorage dq_pending). Only the reveal waits REVIEW_WAIT_MS;
-         the queue number and stage labels are presentational. "Fast-forward" reveals it now. -->
-    <p class="wait-note">Reviewing — you can leave, we'll keep your spot</p>
-    <div class="dmhead"><div class="avatar">HD</div><div><strong>HotDrop Stylist</strong><div class="small">reviewing your take…</div></div></div>
+    <!-- Real queue: the take is scored and waits for the merchant. app.js polls GET /api/attempts/:id every 3 s
+         (dq_pending in localStorage survives a reload). -->
+    <p class="wait-note">Scored — you can leave, we'll keep your spot</p>
+    <div class="score-hero">
+      <h1 class="disp">In the queue</h1>
+      <div class="score-ring" role="img" aria-label="Score">
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="54"/><circle id="w-ring" class="ring-fg score-fg" cx="60" cy="60" r="54" pathLength="100"/></svg>
+        <div class="ring-label"><b id="w-score" class="disp tnum">0</b><span>/ 100</span></div>
+      </div>
+      <p id="w-rank" class="rank" role="status">You're in the queue</p>
+      <p class="small">The merchant approves the best takes, highest scores first. We'll hold your item the moment you're picked.</p>
+    </div>
+    <ul id="w-metrics" class="metrics" aria-label="Your scores"></ul>
+    <div class="dmhead"><div class="avatar">HD</div><div><strong>HotDrop Stylist</strong><div class="small">scored your take</div></div></div>
     <div class="mytake"><img id="w-thumb" alt="Your clip"><span id="w-len">▶ my take</span></div>
-    <div class="bubble">
-      <span class="disp big">Your stylist is reviewing your take</span>
-      <p id="w-stage" role="status">Watching your clip…</p>
-      <span class="typing" aria-hidden="true"><i></i><i></i><i></i></span>
-    </div>
-    <div class="card queue">
-      <p id="w-queue">You're #5 in the queue</p>
-      <div class="track"><i id="w-bar"></i></div>
-      <p class="small">Reviews take about a minute. You can keep this tab open.</p>
-    </div>
-    <p id="w-held" class="pill sage held" hidden>Your spot is being held while it's reviewed</p>
-    <button id="w-skip" class="cta ghost demo">⏩ Fast-forward review (demo)</button>
+    <div class="bubble"><p id="w-feedback"></p></div>
+    <p id="w-poll" class="small center live-dot">Checking for the merchant's pick</p>
+    <button id="w-skip" class="cta demo"><span class="demo-tag">DEMO</span> Skip review (demo)</button>
   </section>
 
   <section id="s-result" class="screen" hidden>
@@ -159,6 +161,13 @@
     <div class="bubble dm-only">
       <h1 id="res-title" class="disp"></h1>
       <p id="res-feedback"></p>
+    </div>
+    <div id="res-score" class="score-row dm-only" hidden>
+      <div class="score-ring sm" role="img" aria-label="Score">
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="54"/><circle id="res-ring" class="ring-fg score-fg" cx="60" cy="60" r="54" pathLength="100"/></svg>
+        <div class="ring-label"><b id="res-score-n" class="disp tnum">0</b><span>/ 100</span></div>
+      </div>
+      <ul id="res-metrics" class="metrics" aria-label="Your scores"></ul>
     </div>
     <ul id="res-criteria" class="criteria dm-only"></ul>
     <div id="res-expired" class="center">

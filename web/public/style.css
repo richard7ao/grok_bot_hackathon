@@ -244,11 +244,31 @@ a { color: var(--ink); font-weight: 600; }
 .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite; }
 .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
 @keyframes blink { 0%, 100% { opacity: .25; } 40% { opacity: 1; } }
-.queue p { margin: 0; }
-#w-queue { font: 800 20px "Inter Tight", sans-serif; letter-spacing: -.02em; }
-.track { height: 6px; border-radius: 6px; background: var(--surface); margin: 12px 0 10px; overflow: hidden; }
-.track i { display: block; height: 100%; width: 3%; border-radius: 6px; background: var(--cobalt); transition: width .6s linear; }
-.held { margin-top: 12px; }
+/* Queue (s-wait) and scored result: the cobalt score ring is the one loud thing; bars stay ink. */
+.score-hero { text-align: center; margin: 4px 0 20px; }
+.score-hero h1 { margin: 0 0 14px; font-size: 30px; line-height: 1.05; }
+.score-hero .small { max-width: 32ch; margin: 12px auto 0; }
+.score-ring { position: relative; width: 188px; aspect-ratio: 1; margin: 0 auto; }
+.score-ring .ring circle { stroke-width: 10; }
+.score-fg { stroke-dashoffset: 100; transition: stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1); }
+.score-ring .ring-label b { font-size: 60px; line-height: 1; letter-spacing: -.05em; }
+.score-ring .ring-label span { margin-top: 2px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.score-ring.sm { width: 96px; flex: none; margin: 0; }
+.score-ring.sm .ring circle { stroke-width: 12; }
+.score-ring.sm .ring-label b { font-size: 30px; }
+.score-ring.sm .ring-label span { margin: 0; font-size: 11px; }
+.rank { display: inline-block; margin: 14px 0 0; padding: 8px 16px; border-radius: 999px; background: var(--ink); color: #fff; font: 800 17px "Inter Tight", sans-serif; letter-spacing: -.02em; }
+.metrics { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 9px; }
+.metrics li { display: grid; grid-template-columns: 116px 1fr 38px; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; }
+.metrics i { height: 8px; border-radius: 8px; background: var(--surface); overflow: hidden; }
+.metrics b { display: block; width: 0; height: 100%; border-radius: 8px; background: var(--ink); transition: width .7s cubic-bezier(.22,1,.36,1); }
+.metrics.filled b { width: var(--w); }
+.metrics em { font-style: normal; text-align: right; color: var(--muted); font-size: 12.5px; }
+.score-row { display: flex; align-items: center; gap: 16px; margin: 0 0 14px; }
+.score-row .metrics { flex: 1; margin: 0; gap: 6px; }
+.score-row .metrics li { grid-template-columns: 112px 1fr 30px; gap: 8px; font-size: 12px; }
+#w-poll { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 18px 0 0; }
+#w-poll::before { animation: blink 1.4s infinite; }
 
 /* Held + share */
 .held-row { display: flex; gap: 14px; align-items: center; margin: 14px 0 6px; }
@@ -379,4 +399,6 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; background: tra
   .shine::after, .drop-card.live .tile::after, #s-drop.live .hero::after, .pin.live::before, .you, .marquee-track, .spark, .spinner, .typing i { animation: none; }
   .spark { opacity: .8; transform: none; }
   .cta, .drop-card, .pin img, .pin span, .cluster .stack { transition: none; }
+  .score-fg, .metrics b { transition: none; }
+  #w-poll::before { animation: none; }
 }
