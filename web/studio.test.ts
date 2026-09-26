@@ -68,7 +68,7 @@ test("studio.js only calls contract routes", async () => {
   const js = await (await fetch(`${base}/studio.js`)).text();
   const calls = [...js.matchAll(/api\(`([^`]+)`/g), ...js.matchAll(/api\("([^"]+)"/g)].map((m) => m[1].replace(/\$\{[^}]+\}/g, ":id"));
   expect(calls.length).toBeGreaterThan(3);
-  const allowed = ["/api/campaigns", "/api/campaigns/:id", "/api/campaigns/draft", "/api/demo/reset"];
+  const allowed = ["/api/campaigns", "/api/campaigns/:id", "/api/campaigns/draft", "/api/campaigns/:id/decisions", "/api/demo/reset"];
   for (const c of calls) expect(allowed).toContain(c);
   expect(js).not.toContain("innerHTML");
 });
@@ -96,4 +96,33 @@ test("studio image picker lists the 8 product photos before the illustrations", 
   expect(js).toContain("/img/photos/${f}.jpg");
   expect(js).toMatch(/\.\.\.PHOTOS\.map\(imageTile\),\s*el\("span", "tiles-lbl", "Illustrations"\),\s*\.\.\.ILLUSTRATIONS\.map\(imageTile\)/);
   for (const p of ["birkin", "arcteryx", "carhartt", "xt6", "stoneisland", "football", "baguette", "flats"]) expect((await fetch(`${base}/img/photos/${p}.jpg`)).status).toBe(200);
+});
+
+// v3: merchants approve scored takes; the queue and auto-review controls must exist and hit the contract routes.
+test("studio.html has the review queue and auto-review controls", async () => {
+  const html = await (await fetch(`${base}/studio.html`)).text();
+  for (const id of ["review-queue", "queue-count", "ar-note", "auto-review", "ar-toggle", "ar-prompt", "ar-count", "ar-save"]) expect(html).toContain(`id="${id}"`);
+  for (const m of ["outfit", "styling", "product_detail", "energy", "quality"]) expect(html).toMatch(new RegExp(`<input type="range" id="th-${m}" min="0" max="10"`));
+  expect(html).toContain('maxlength="1000"');
+  // The queue comes before the stock/analytics section so it is the first thing a merchant sees.
+  expect(html.indexOf('id="review-queue"')).toBeLessThan(html.indexOf('id="kpis"'));
+});
+
+test("studio.js posts decisions and PATCHes review settings", async () => {
+  const js = await (await fetch(`${base}/studio.js`)).text();
+  expect(js).toContain("api(`/api/campaigns/${state.openId}/decisions`, { method: \"POST\"");
+  expect(js).toMatch(/attempt_id: r\.attempt_id, decision/);
+  expect(js).toMatch(/method: "PATCH", body: JSON\.stringify\(\{ review \}\)/);
+  for (const k of ["auto_review", "thresholds", "scoring_prompt"]) expect(js).toContain(k);
+  // Polling must not clobber unsaved settings or rebuild (and so pause) queue videos.
+  expect(js).toContain("if (state.arDirty) return;");
+  expect(js).toContain("state.qcards.get(key)");
+});
+
+test("mock detail pending takes carry scores and campaign review settings", async () => {
+  const d = await json("/api/campaigns/1");
+  expect(d.campaign.review).toMatchObject({ auto_review: false, scoring_prompt: "" });
+  const pending = d.reviews.filter((r: { verdict: string }) => r.verdict === "pending");
+  expect(pending.length).toBeGreaterThan(0);
+  expect(Object.keys(pending[0].scores).sort()).toEqual(["energy", "outfit", "product_detail", "quality", "styling"]);
 });
